@@ -56,7 +56,7 @@ public Event (int bpid, String label) {
 }
 
 /**
- * Assigns (Integer) IDs to a event if it has none,
+ * Assigns (Integer) IDs to an event if it has none,
  * returns existing ID otherwise. 
  */
 private static Integer identify(Event e) {
@@ -103,6 +103,10 @@ public EventType getType(){
 	
 	return this.type;
 }
+
+//private void setType(final EventType type){
+//	this.type = type;
+//}
 
 public boolean hasTrivialMultiplicity() {
 	return (multiplicity.length == 1 && multiplicity[0] == 1);
