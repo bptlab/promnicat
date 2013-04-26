@@ -6,34 +6,24 @@ import java.util.List;
 
 public class BPA {
 
-String name = "";
-String organisation = "";
-List<BusinessProcess> processlist;
-List<Relation> relation;
-private List<Event> events = new ArrayList<Event>();
+private String name = "";
+private String organisation = "";
+private List<BusinessProcess> processlist;
+private List<Relation> relations;
 
-public void addProcess(BusinessProcess BP){
-	BusinessProcess process = BP;
-	this.processlist.add(process);
-	
+public void addProcess(BusinessProcess process){
+	processlist.add(process);
 }
 
-public void addRelation(){
-	
+public void addRelation(Relation relation){
+	relations.add(relation);
 }
-
-
-public void removeProcess(){
-
-}
-
-public void removeRelation(){
-	
-}
-
-
 
 public List<Event> getEvents() {
+	List<Event> events = new ArrayList<Event>();
+	for (BusinessProcess bp : processlist) {
+		events.addAll(bp.getEvents());
+	}
 	return events;
 }
 
@@ -43,10 +33,13 @@ public List<BusinessProcess> getAllProcesses() {
 
 public void setProcesslist(List<BusinessProcess> processlist) {
 	this.processlist = processlist;
-	for (BusinessProcess bp : processlist) {
-		events.addAll(bp.getEvents());
-	}
 }
 
+//public void removeProcess(){
+//
+//}
+//public void removeRelation(){
+//	
+//}
 }
 
