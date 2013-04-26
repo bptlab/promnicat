@@ -5,21 +5,21 @@ import java.util.*;
 
 public class Relation {
 	
-	private static Relation instance;
+//	private static Relation instance;
 	 
 	private Map<SendingEvent, List<StartEvent>> triggers = new HashMap<SendingEvent, List<StartEvent>>();
 	private Map<SendingEvent, IntermediateCatchingEvent> messages = new HashMap<SendingEvent, IntermediateCatchingEvent>();
 	
-	private Relation(){
-		
+	public Relation(){
+	// nothing to do here	
 	}
 	
-	public static Relation getInstance(){
-		if(Relation.instance == null){
-			Relation.instance = new Relation();
-		}
-		return Relation.instance;
-	}
+//	public static Relation getInstance(){
+//		if(Relation.instance == null){
+//			Relation.instance = new Relation();
+//		}
+//		return Relation.instance;
+//	}
 	
 	public void addTriggers(SendingEvent send, List<StartEvent> start){
 		
