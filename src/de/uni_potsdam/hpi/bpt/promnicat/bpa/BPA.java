@@ -9,15 +9,26 @@ public class BPA {
 private String name = "";
 private String organisation = "";
 private List<BusinessProcess> processlist;
-private List<Relation> relations;
+private Relation relations;
 
 public void addProcess(BusinessProcess process){
 	processlist.add(process);
 }
 
-public void addRelation(Relation relation){
-	relations.add(relation);
+public void setRelation(Relation relation){
+	relations = relation;
 }
+
+public void addRelation(SendingEvent e1,  ReceivingEvent e2){
+	if (e2 instanceof StartEvent) {
+		Relation.getInstance().addTrigger(e1, (StartEvent) e2);
+	} else if (e2 instanceof IntermediateCatchingEvent) {
+		Relation.getInstance().addMessage(e1, (IntermediateCatchingEvent) e2);
+	}
+	
+	
+}
+
 
 public List<Event> getEvents() {
 	List<Event> events = new ArrayList<Event>();

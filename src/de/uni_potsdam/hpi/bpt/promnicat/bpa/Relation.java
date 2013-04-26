@@ -7,7 +7,7 @@ public class Relation {
 	
 	private static Relation instance;
 	 
-	private Map<SendingEvent, ArrayList<StartEvent>> triggers = new HashMap<SendingEvent, ArrayList<StartEvent>>();
+	private Map<SendingEvent, List<StartEvent>> triggers = new HashMap<SendingEvent, List<StartEvent>>();
 	private Map<SendingEvent, IntermediateCatchingEvent> messages = new HashMap<SendingEvent, IntermediateCatchingEvent>();
 	
 	private Relation(){
@@ -21,10 +21,10 @@ public class Relation {
 		return Relation.instance;
 	}
 	
-	public void addTrigger(SendingEvent send, ArrayList<StartEvent> start){
+	public void addTriggers(SendingEvent send, List<StartEvent> start){
 		
 		if(triggers.get(send)!=null){
-			ArrayList<StartEvent> triggeredevents = triggers.get(send);
+			List<StartEvent> triggeredevents = triggers.get(send);
 			 
 			ListIterator<StartEvent> litr = start.listIterator();
 			    while (litr.hasNext()) {
@@ -37,13 +37,29 @@ public class Relation {
 		
 	}
 	
+	
+	public void addTrigger(SendingEvent send, StartEvent start){
+		
+		if(triggers.get(send)!=null){
+			List<StartEvent> triggeredevents = triggers.get(send);
+			      triggeredevents.add(start);
+			      start.addToPreset(send);
+		}else{
+			List<StartEvent> triggeredevents = new ArrayList<StartEvent>();
+			triggeredevents.add(start);
+			triggers.put(send, triggeredevents);	
+		}
+		
+	}
+	
 	public void addMessage(SendingEvent send, IntermediateCatchingEvent catchint){
 		messages.put(send, catchint);
 	}
 	
-	public ArrayList<StartEvent> getTriggered(SendingEvent send){
+	public List<StartEvent> getTriggered(SendingEvent send){
 		
-		ArrayList<StartEvent> triggeredevents = triggers.get(send);
-		return triggeredevents;
+		List<StartEvent> triggeredevents = triggers.get(send);
+		if(triggeredevents==null) triggeredevents = new ArrayList<StartEvent>();
+		return triggers.get(send);
 	}
 }

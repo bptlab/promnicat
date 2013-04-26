@@ -20,7 +20,7 @@ public class StartEvent extends ReceivingEvent {
 	public StartEvent(int eventid, int bpid, String label, int[] mult) {
 		super(eventid, bpid, label, mult);
 		// TODO Auto-generated constructor stub
-		this.type = StartEvent.EventType.STARTEVENT;
+		this.type = ReceivingEvent.EventType.STARTEVENT;
 	}
 
 	/**
@@ -31,7 +31,7 @@ public class StartEvent extends ReceivingEvent {
 	public StartEvent(int bpid, String label, int[] mult) {
 		super(bpid, label, mult);
 		// TODO Auto-generated constructor stub
-		this.type = StartEvent.EventType.STARTEVENT;
+		this.type = ReceivingEvent.EventType.STARTEVENT;
 	}
 
 	/**
@@ -41,7 +41,7 @@ public class StartEvent extends ReceivingEvent {
 	public StartEvent(int bpid, String label) {
 		super(bpid, label);
 		// TODO Auto-generated constructor stub
-		this.type = StartEvent.EventType.STARTEVENT;
+		this.type = ReceivingEvent.EventType.STARTEVENT;
 	}
 	
 	public EventType getType() {

@@ -32,4 +32,8 @@ public class ReceivingEvent extends Event {
 	public void setPreset(List<SendingEvent> predecessors){
 		preset = predecessors;
 	}
+
+	public void addToPreset(SendingEvent send) {
+		getPreset().add(send);
+	}
 }
