@@ -32,11 +32,16 @@ public class BPATransformer {
 	// nothing to do here
 	}
 	
-	public PetriNet transform(BPA bpa) {
+	/**
+	 * Transforms a given BPA into a {@link NetSystem}.
+	 * @param bpa
+	 * @return
+	 */
+	public NetSystem transform(BPA bpa) {
 		List<BusinessProcess> processes = bpa.getAllProcesses();
 		Map<BusinessProcess,PetriNet> resultingNets = new HashMap<BusinessProcess,PetriNet>();
 		Map<Event, List<PetriNet>> intermediaryNets = new HashMap<Event, List<PetriNet>>();
-		PetriNet bpaNet = new PetriNet();
+		NetSystem bpaNet = new NetSystem();
 		
 		// process nets
 		for (BusinessProcess process : processes) {
@@ -67,11 +72,13 @@ public class BPATransformer {
 	 * @return a org.jbpt.petri.PetriNet
 	 */
 	private PetriNet transform(BusinessProcess process) {
-		PetriNet processNet = new PetriNet();
+		NetSystem processNet = new NetSystem();
 		// iterate over events, construct process' net
 		Boolean first = true;
 		Place p, pPrime = null;
 		Transition t;
+		//Marking initialMarking = new Marking(processNet);
+//		initialMarking.createMarking(processNet);
 		Iterator<Event> iter = process.getEvents().iterator();
 		while (iter.hasNext()) {	
 			Event ev = iter.next();
@@ -90,6 +97,9 @@ public class BPATransformer {
 			// handle start event, no pPrime exists for it
 			if (first) {
 				first = false;
+				if (ev instanceof StartEvent && ((StartEvent) ev).isInitialPlace()) { 
+					processNet.getMarking().put(p,1);
+				}
 			} else {
 				processNet.addEdge(pPrime, t);
 			}
@@ -99,6 +109,8 @@ public class BPATransformer {
 				pPrime = new Place("p'_"+ev.getLabel());
 				processNet.addPlace(pPrime);
 				processNet.addEdge(t, pPrime);
+			} else {
+				// TODO how to indicate final marking?
 			}
 		}
 		return processNet;
@@ -110,8 +122,8 @@ public class BPATransformer {
 	 * @param allNets
 	 * @return a composed PetriNet
 	 */
-	private PetriNet compose(Collection<PetriNet> allNets) {
-		PetriNet composedNet = new ComposingPetriNet();
+	private NetSystem compose(Collection<PetriNet> allNets) {
+		NetSystem composedNet = new ComposingPetriNet();
 		
 		for (PetriNet pn : allNets) {
 			for (Place p : pn.getPlaces()) {
@@ -120,11 +132,14 @@ public class BPATransformer {
 			for (AbstractDirectedEdge<Node> arc : pn.getEdges()) {
 				composedNet.addFreshFlow(arc.getSource(), arc.getTarget());
 			}
+			if (pn instanceof NetSystem) {
+				composedNet.getMarking().putAll(((NetSystem) pn).getMarking());
+			}
 		}
 		return composedNet;
 	}
 
-	private class ComposingPetriNet extends PetriNet {
+	private class ComposingPetriNet extends NetSystem {
 
 		Map<String,Place> existingPlaces = new HashMap<String,Place>();
 		
@@ -170,7 +185,7 @@ public class BPATransformer {
 	public static void main(String[] args) {
 		//testing transformation
 		// some events
-		final ReceivingEvent e0 = new ReceivingEvent(0, 2, "p", new int[]{1});
+		final StartEvent e0 = new StartEvent(0, 2, "p", new int[]{1});
 		final SendingEvent e1 = new SendingEvent(1,2,"q", new int[]{1,2} );
 		
 		final ReceivingEvent e2 = new ReceivingEvent(3, 4, "r",new int[]{3,4} );
@@ -194,28 +209,29 @@ public class BPATransformer {
 //		e6.setPreset(Arrays.asList(e4));
 		
 		// two business processes make the bpa
-		BusinessProcess p1 = new BusinessProcess(Arrays.asList(e2,e4,e3));
-		BusinessProcess p2 = new BusinessProcess(Arrays.asList(e0, e1));
-		BusinessProcess p3 = new BusinessProcess(Arrays.asList(e5, e6, e9));
-		BusinessProcess p4 = new BusinessProcess(Arrays.asList(e7, e8));
+		BusinessProcess p1 = new BusinessProcess(Arrays.asList(e2,e4,e3), "P1");
+		BusinessProcess p2 = new BusinessProcess(Arrays.asList(e0, e1),"P2");
+		BusinessProcess p3 = new BusinessProcess(Arrays.asList(e5, e6, e9),"P3");
+		BusinessProcess p4 = new BusinessProcess(Arrays.asList(e7, e8),"P4");
 		BPA bpa = new BPA();
 		bpa.setProcesslist(Arrays.asList(p1,p2,p3,p4));
 		
 		// transform it
 		BPATransformer trans = new BPATransformer();
-		PetriNet result = trans.transform(bpa);
+		//PetriNet result = trans.transform(bpa);
 		
 		//jbpt serializing PNML requires NetSystem instead of PetriNet
-		NetSystem pns = new NetSystem(result);
+		NetSystem pns = trans.transform(bpa); //new NetSystem(result);
+		System.out.println(pns.getMarking());
 		pns.setName("Testnetz");
 		//add nodes manually because constructor does not work as supposed
-		for (Node n : result.getNodes())
-			pns.addNode(n);
-		for (AbstractDirectedEdge<Node> f : result.getFlow()) {
-			Flow newFlow = pns.addFreshFlow(f.getSource(), f.getTarget());
-			if (f.getName() != "") 
-				newFlow.setName(f.getName());
-		}
+//		for (Node n : result.getNodes())
+//			pns.addNode(n);
+//		for (AbstractDirectedEdge<Node> f : result.getFlow()) {
+//			Flow newFlow = pns.addFreshFlow(f.getSource(), f.getTarget());
+//			if (f.getName() != "") 
+//				newFlow.setName(f.getName());
+//		}
 		
 		// serialize and write to file
 		try {

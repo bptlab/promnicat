@@ -47,5 +47,15 @@ public class StartEvent extends ReceivingEvent {
 	public EventType getType() {
 		return this.type;
 	}
+	
+	/**
+	 * Checks whether this StartEvent is an initial place, ie. whether
+	 * is has no incoming triggers. In this case its place in the 
+	 * PetriNet representation is marked.
+	 * @return
+	 */
+	public boolean isInitialPlace() {
+		return (getPreset() == null || getPreset().isEmpty());
+	}
 
 }
