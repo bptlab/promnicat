@@ -130,7 +130,9 @@ public class BPATransformer {
 				composedNet.addPlace(p);
 			}
 			for (AbstractDirectedEdge<Node> arc : pn.getEdges()) {
-				composedNet.addFreshFlow(arc.getSource(), arc.getTarget());
+				Flow newFlow = composedNet.addFreshFlow(arc.getSource(), arc.getTarget());
+				newFlow.setTag(arc.getTag());
+				newFlow.setName(arc.getName());
 			}
 			if (pn instanceof NetSystem) {
 				composedNet.getMarking().putAll(((NetSystem) pn).getMarking());
@@ -183,73 +185,34 @@ public class BPATransformer {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		//testing transformation
-		// some events
-		final StartEvent e0 = new StartEvent(0, 2, "p", new int[]{1});
-		final SendingEvent e1 = new SendingEvent(1,2,"q", new int[]{1,2} );
-		
-		final ReceivingEvent e2 = new ReceivingEvent(3, 4, "r",new int[]{3,4} );
-		final SendingEvent e3 = new SendingEvent(5,4,"s", new int[]{1});
-		final SendingEvent e4 = new SendingEvent(6, 4, "t", new int[]{1});
 
-		final ReceivingEvent e5 = new ReceivingEvent(7, 9, "u", new int[]{1});
-		final ReceivingEvent e6 = new ReceivingEvent(8,9,"v", new int[]{1} );
-		final SendingEvent e9 = new SendingEvent(13,9,"z", new int[]{1} );
-		
-		final ReceivingEvent e7 = new ReceivingEvent(10, 12, "x", new int[]{1});
-		final SendingEvent e8 = new SendingEvent(11,12,"y", new int[]{1} );
-		
-		e1.setPostset(Arrays.asList(e2,e5));
-		e2.setPreset(Arrays.asList(e1));
-		e5.setPreset(Arrays.asList(e1,e8));
-		e8.setPostset(Arrays.asList(e5));
-//		e3.setPostset(Arrays.asList(e7));
-//		e7.setPreset(Arrays.asList(e3));
-//		e4.setPostset(Arrays.asList(e6));
-//		e6.setPreset(Arrays.asList(e4));
-		
-		// two business processes make the bpa
-		BusinessProcess p1 = new BusinessProcess(Arrays.asList(e2,e4,e3), "P1");
-		BusinessProcess p2 = new BusinessProcess(Arrays.asList(e0, e1),"P2");
-		BusinessProcess p3 = new BusinessProcess(Arrays.asList(e5, e6, e9),"P3");
-		BusinessProcess p4 = new BusinessProcess(Arrays.asList(e7, e8),"P4");
-		BPA bpa = new BPA();
-		bpa.setProcesslist(Arrays.asList(p1,p2,p3,p4));
-		
 		// transform it
 		BPATransformer trans = new BPATransformer();
-		//PetriNet result = trans.transform(bpa);
-		
-		//jbpt serializing PNML requires NetSystem instead of PetriNet
-		NetSystem pns = trans.transform(bpa); //new NetSystem(result);
-		System.out.println(pns.getMarking());
+		BPA testBPA = BPAExamples.complexBPA();
+		NetSystem pns = trans.transform(testBPA);
 		pns.setName("Testnetz");
-		//add nodes manually because constructor does not work as supposed
-//		for (Node n : result.getNodes())
-//			pns.addNode(n);
-//		for (AbstractDirectedEdge<Node> f : result.getFlow()) {
-//			Flow newFlow = pns.addFreshFlow(f.getSource(), f.getTarget());
-//			if (f.getName() != "") 
-//				newFlow.setName(f.getName());
-//		}
+		String xmlString = InscriptionSerializer.serializeNet(pns);
+
+		//jbpt serializing PNML requires NetSystem instead of PetriNet
+		//NetSystem pns = trans.transform(BPAExamples.complexBPA);
+		//System.out.println(InscriptionSerializer.serializeNet(pns));
 		
 		// serialize and write to file
 		try {
 			File file = new File(System.getenv("userprofile") + File.separator + "test.pnml");
 			FileWriter fw = new FileWriter(file);
 			BufferedWriter bw = new BufferedWriter(fw);
-			bw.write(PNMLSerializer.serializePetriNet(pns));
+			bw.write(xmlString);
 			bw.close();
 			System.out.println("Transformation complete, written to: " + file);
 			System.out.println("Import with Renew (File-Import-XML-PNML) and choose Layout-Automatic Layout");
-		} catch (SerializationException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} 
 		
 		
 	}
+
 	
 
 	/**
@@ -369,7 +332,7 @@ public class BPATransformer {
 			multireceiver.addEdge(tmp, outPlace);
 			inFlow = multireceiver.addEdge(inPlace,tmp);
 			inFlow.setTag(new Integer(mult));
-			inFlow.setName("2");
+			//inFlow.setName(new Integer(mult).toString());
 		}
 		
 		return multireceiver;
@@ -451,7 +414,7 @@ public class BPATransformer {
 			multicaster.addEdge(inPlace, tmp);
 			outFlow = multicaster.addEdge(tmp, outPlace);
 			outFlow.setTag(new Integer(mult));
-			outFlow.setName("2");
+			//outFlow.setName("2");
 		}
 		return multicaster;
 	}

@@ -8,7 +8,7 @@ public class Relation {
 //	private static Relation instance;
 	 
 	private Map<SendingEvent, List<StartEvent>> triggers = new HashMap<SendingEvent, List<StartEvent>>();
-	private Map<SendingEvent, IntermediateCatchingEvent> messages = new HashMap<SendingEvent, IntermediateCatchingEvent>();
+	private Map<SendingEvent, List<IntermediateCatchingEvent>> messages = new HashMap<SendingEvent, List<IntermediateCatchingEvent>>();
 	
 	public Relation(){
 	// nothing to do here	
@@ -37,27 +37,32 @@ public class Relation {
 		
 	}
 	
-	
-	public void addTrigger(SendingEvent send, StartEvent start){
-		
-		if(triggers.get(send)!=null){
-			List<StartEvent> triggeredevents = triggers.get(send);
-			      triggeredevents.add(start);
-			      start.addToPreset(send);
-		}else{
-			List<StartEvent> triggeredevents = new ArrayList<StartEvent>();
-			triggeredevents.add(start);
-			triggers.put(send, triggeredevents);	
+	public void addTrigger(SendingEvent send, StartEvent start) {
+		if (triggers.get(send) != null) {
+			triggers.get(send).add(start);
+		} else {
+			List<StartEvent> triggered = new ArrayList<StartEvent>();
+			triggered.add(start);
+			triggers.put(send, triggered);	
 		}
-		
+		//TODO is it better to use addToPreset() instead of getPostset().add()???
+		start.addToPreset(send);
+		send.getPostset().add(start);
 	}
 	
 	public void addMessage(SendingEvent send, IntermediateCatchingEvent catchint){
-		messages.put(send, catchint);
+		if (messages.get(send) != null) {
+			messages.get(send).add(catchint);
+		} else {
+			List<IntermediateCatchingEvent> receivers = new ArrayList<IntermediateCatchingEvent>();
+			receivers.add(catchint);
+			messages.put(send, receivers);
+		}
+		send.getPostset().add(catchint);
+		catchint.getPreset().add(send);
 	}
 	
 	public List<StartEvent> getTriggered(SendingEvent send){
-		
 		List<StartEvent> triggeredevents = triggers.get(send);
 		if(triggeredevents==null) triggeredevents = new ArrayList<StartEvent>();
 		return triggers.get(send);

@@ -8,7 +8,7 @@ public class BPA {
 
 private String name = "";
 private String organisation = "";
-private List<BusinessProcess> processlist;
+private List<BusinessProcess> processlist = new ArrayList<BusinessProcess>();
 private Relation relations = new Relation();
 
 
@@ -37,6 +37,8 @@ public void addRelation(SendingEvent e1,  ReceivingEvent e2){
 		relations.addTrigger(e1, (StartEvent) e2);
 	} else if (e2 instanceof IntermediateCatchingEvent) {
 		relations.addMessage(e1, (IntermediateCatchingEvent) e2);
+	} else {
+		System.out.println("Error no relation added between <"+e1.getLabel()+"> - <"+e2.getLabel()+">.");
 	}
 }
 
