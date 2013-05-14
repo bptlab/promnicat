@@ -1,9 +1,19 @@
 package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -12,11 +22,24 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
 import org.jbpt.graph.Edge;
 import org.jbpt.graph.abs.AbstractDirectedEdge;
 import org.jbpt.petri.*;
 import org.jbpt.petri.io.PNMLSerializer;
 import org.jbpt.throwable.SerializationException;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * Transforms a {@link BPA} (subset) into a Petri Net.
@@ -185,7 +208,67 @@ public class BPATransformer {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-
+		
+		// read json file
+		//File jsonPath =  new File(System.getenv("userprofile") + File.separator + "test.json");
+		try {
+			Path jsonPath = Paths.get(System.getenv("userprofile") + File.separator + "test.xml");
+			
+			// SAX using callbacks, sound complicated
+			//SAXParser sax = SAXParserFactory.newInstance().newSAXParser();
+			
+			// DOMBuilder in-memory, ok because DOM is small
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			Document doc = builder.parse(jsonPath.toFile());
+			NodeList json = doc.getElementsByTagName("json-representation");
+			if (json.getLength() > 0) {
+				org.w3c.dom.Node first = json.item(0);
+				JSONObject j = new JSONObject(first.getTextContent());
+				for (Iterator it = j.keys(); it.hasNext();) {
+					String key = (String) it.next();
+					Object obj = j.get(key);
+					if (obj instanceof String) {
+						String s = (String) obj;
+					}
+					
+					System.out.println(obj);
+					
+				}
+				
+//				JSONArray arr = j.getJSONArray("childShapes");
+//				for (int i = 0; i < arr.length() ; i++ ) {
+//						JSONObject jj = (JSONObject) arr.opt(i);
+//						System.out.println(jj.toString());
+//				}
+			}
+			//			List<String> lines = Files.readAllLines(jsonPath, StandardCharsets.UTF_8);
+//			for (String string : lines) {
+//				System.out.println(string);
+//			}
+			//BufferedReader r = new BufferedReader(new FileReader(jsonPath));
+			
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SAXException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParserConfigurationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
 		// transform it
 		BPATransformer trans = new BPATransformer();
 		BPA testBPA = BPAExamples.complexBPA();
