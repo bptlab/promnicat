@@ -36,16 +36,25 @@ import org.jbpt.throwable.SerializationException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.omg.CosNaming.NamingContextPackage.NotEmpty;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import de.uni_potsdam.hpi.bpt.ai.diagram.Diagram;
+import de.uni_potsdam.hpi.bpt.ai.diagram.DiagramBuilder;
+import de.uni_potsdam.hpi.bpt.ai.diagram.Shape;
 
 /**
  * Transforms a {@link BPA} (subset) into a Petri Net.
  * Assumes that all events of the BPA are unique. 
  * @author Marcin.Hewelt
   */
+/**
+ * @author rami.eidsabbagh
+ *
+ */
 public class BPATransformer {
 	
 	/**
@@ -214,9 +223,6 @@ public class BPATransformer {
 		try {
 			Path jsonPath = Paths.get(System.getenv("userprofile") + File.separator + "test.xml");
 			
-			// SAX using callbacks, sound complicated
-			//SAXParser sax = SAXParserFactory.newInstance().newSAXParser();
-			
 			// DOMBuilder in-memory, ok because DOM is small
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder builder = factory.newDocumentBuilder();
@@ -232,9 +238,133 @@ public class BPATransformer {
 						String s = (String) obj;
 					}
 					
-					System.out.println(obj);
+					System.out.println(key+"-> "+obj);
 					
 				}
+				
+				// let bpmai parse json to diagram
+				Diagram diag = DiagramBuilder.parseJson(j);
+                List<Shape> shapes = diag.getShapes();
+                Map<String, Event> eventMapper = new HashMap<String, Event>();
+                Map<String,List<String>> prepostMapper = new HashMap<String, List<String>>();
+                Map<String,List<String>> postSetMapper = new HashMap<String, List<String>>();
+                Map<String,List<String>> preSetMapper = new HashMap<String, List<String>>();
+                for (Shape shape : shapes) {
+					String stencilId = shape.getStencilId();
+					String resourceId = shape.getResourceId();
+					if (isSending(stencilId)) {
+						// TODO here we get Message-Shape
+						List<Shape> out = shape.getOutgoings();
+						List<String> outIds = new ArrayList<String>();
+						for (Shape target : out) {
+							//System.out.println("Flowtype: "+target.getStencilId()+" ID: "+target.getResourceId());
+							//System.out.println("Flow target "+target.getTarget().getResourceId());
+							//System.out.println("Flow target "+target.getTarget().getStencilId());
+							// Puts Target Event Id into ArrayList
+							outIds.add(target.getTarget().getResourceId());
+							if (null == preSetMapper.get(target.getTarget().getResourceId())) {
+								List<String> inIds = new ArrayList<String>();
+								System.out.println("Preset Candidate: "+resourceId+" size of new before list"+inIds.size());
+								inIds.add(resourceId);
+								System.out.println("Preset Candidate: "+resourceId+" size of new list"+inIds.size());
+								preSetMapper.put(target.getTarget().getResourceId(), inIds);	
+							} else {
+								List<String> inIds = preSetMapper.get(target.getTarget().getResourceId());
+								System.out.println("Preset Candidate: "+resourceId+" size of list"+inIds.size());
+								inIds.add(resourceId);
+								preSetMapper.put(target.getTarget().getResourceId(), inIds);
+							}
+								
+							
+							
+						}
+						postSetMapper.put(resourceId, outIds);
+						
+					} 
+//						else if (isReceiving(stencilId)) {
+//						//TODO here we get Message-Shape
+//						List<Shape> in = shape.getIncomings();
+//						List<String> inIds = new ArrayList<String>();
+//						for (Shape source : in) {
+//							//System.out.println("Incoming :"+source.getResourceId());
+//							//System.out.println("Flowtype: "+source.getStencilId()+" ID: "+source.getResourceId());
+//							//System.out.println("Flow target "+source.getIncomings().getResourceId());
+//							inIds.add(source.getResourceId());
+//						}
+//						preSetMapper.put(resourceId, inIds);
+//					}
+					if (isMTFlow(stencilId)) {
+						//System.out.println("This is a :"+shape.getStencilId());
+						//System.out.println(shape.getResourceId());
+						//System.out.println(shape.getTarget().getResourceId());
+					}
+					// awkward event creation, TODO: use a factory
+					if (stencilId.equals("EndEvent")) {
+						// TODO: Label events in signavio?
+						Event ev = new EndEvent(0, "blub");
+						eventMapper.put(resourceId, ev);
+					} else if (stencilId.equals("StartEvent")) {
+						StartEvent ev = new StartEvent(0, "start");
+						eventMapper.put(resourceId, ev);
+					} else if (stencilId.equals("IntermediateCatchingEvent")) {
+						IntermediateCatchingEvent ev = new IntermediateCatchingEvent(
+								0, "catch");
+						eventMapper.put(resourceId, ev);
+					} else if (stencilId.equals("IntermediateThrowingEvent")) {
+						IntermediateThrowingEvent ev = new IntermediateThrowingEvent(
+								0, "throw");
+						eventMapper.put(resourceId, ev);
+					}
+				}
+
+				// now that all events are created, link them
+                
+                
+                
+                for (String rid : postSetMapper.keySet()) {
+                	System.out.println(rid);
+                	Event ev = eventMapper.get(rid);
+                	List<ReceivingEvent> postSet = new ArrayList<ReceivingEvent>();
+					for (String postId : postSetMapper.get(rid)) {
+						System.out.println("eventID: "+rid+" Postset :"+postId);
+						postSet.add((ReceivingEvent) eventMapper.get(postId));
+					}
+					if (ev instanceof SendingEvent) {
+						((SendingEvent) ev).setPostset(postSet);
+					}
+				}
+                for (String rid : preSetMapper.keySet()) {
+                	System.out.println(rid);
+                	Event ev = eventMapper.get(rid);
+                	List<SendingEvent> preSet = new ArrayList<SendingEvent>();
+					for (String preId : preSetMapper.get(rid)) {
+						System.out.println("eventID: "+rid+" Preset :"+preId);
+						preSet.add((SendingEvent) eventMapper.get(preId));
+					}
+					if (ev instanceof ReceivingEvent) {
+						((ReceivingEvent) ev).setPreset(preSet);
+					}
+				}
+                
+                
+                //System.out.println(prepostMapper);
+                
+                
+//                List<Event> events;
+//                for (Shape shape : shapes) {
+//                	if (shape.getStencilId().equals("BPAProcess")) {
+//                        //handle processes
+//                        ArrayList<Shape> childs = shape.getChildShapes();
+//                        for (Shape shape2 : childs) {
+//                            if (shape2.getStencilId().equals("StartEvent")) {
+//
+//                            }
+//                        }
+//                        BusinessProcess proc = new BusinessProcess(events, shape.getProperties().get("name"));
+//                    }
+//                    System.out.println(shape.getStencilId());
+//                }
+//                System.out.println(diag); 
 				
 //				JSONArray arr = j.getJSONArray("childShapes");
 //				for (int i = 0; i < arr.length() ; i++ ) {
@@ -296,7 +426,29 @@ public class BPATransformer {
 		
 	}
 
-	
+	/**
+	 * @param sid
+	 * @return
+	 */
+	private static boolean isReceiving(String sid) {
+		return sid.equals("IntermediateCatchingEvent") || sid.equals("StartEvent");
+	}
+
+	/**
+	 * @param sid
+	 * @return
+	 */
+	private static boolean isSending(String sid) {
+		return sid.equals("IntermediateThrowingEvent") || sid.equals("EndEvent");
+	}
+
+	/**
+	 * @param sid
+	 * @return
+	 */
+	private static boolean isMTFlow(String sid) {
+		return sid.equals("Message") || sid.equals("Trigger");
+	}
 
 	/**
 	 * Generates the intermediary nets for a given event. This needs to be
