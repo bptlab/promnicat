@@ -19,6 +19,15 @@ public class BusinessProcess {
 		this.name = name;
 	}
 
+	/**
+	 * @param asList
+	 */
+	public BusinessProcess(List<Event> events) {
+		id = UUID.randomUUID();
+		this.events = events;
+		// TODO Auto-generated constructor stub
+	}
+
 	public List<Event> getEvents() {
 		return events;
 	}
