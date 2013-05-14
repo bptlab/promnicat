@@ -1,9 +1,19 @@
 package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -12,11 +22,24 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
 import org.jbpt.graph.Edge;
 import org.jbpt.graph.abs.AbstractDirectedEdge;
 import org.jbpt.petri.*;
 import org.jbpt.petri.io.PNMLSerializer;
 import org.jbpt.throwable.SerializationException;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * Transforms a {@link BPA} (subset) into a Petri Net.
@@ -32,11 +55,16 @@ public class BPATransformer {
 	// nothing to do here
 	}
 	
-	public PetriNet transform(BPA bpa) {
+	/**
+	 * Transforms a given BPA into a {@link NetSystem}.
+	 * @param bpa
+	 * @return
+	 */
+	public NetSystem transform(BPA bpa) {
 		List<BusinessProcess> processes = bpa.getAllProcesses();
 		Map<BusinessProcess,PetriNet> resultingNets = new HashMap<BusinessProcess,PetriNet>();
 		Map<Event, List<PetriNet>> intermediaryNets = new HashMap<Event, List<PetriNet>>();
-		PetriNet bpaNet = new PetriNet();
+		NetSystem bpaNet = new NetSystem();
 		
 		// process nets
 		for (BusinessProcess process : processes) {
@@ -67,11 +95,13 @@ public class BPATransformer {
 	 * @return a org.jbpt.petri.PetriNet
 	 */
 	private PetriNet transform(BusinessProcess process) {
-		PetriNet processNet = new PetriNet();
+		NetSystem processNet = new NetSystem();
 		// iterate over events, construct process' net
 		Boolean first = true;
 		Place p, pPrime = null;
 		Transition t;
+		//Marking initialMarking = new Marking(processNet);
+//		initialMarking.createMarking(processNet);
 		Iterator<Event> iter = process.getEvents().iterator();
 		while (iter.hasNext()) {	
 			Event ev = iter.next();
@@ -90,6 +120,9 @@ public class BPATransformer {
 			// handle start event, no pPrime exists for it
 			if (first) {
 				first = false;
+				if (ev instanceof StartEvent && ((StartEvent) ev).isInitialPlace()) { 
+					processNet.getMarking().put(p,1);
+				}
 			} else {
 				processNet.addEdge(pPrime, t);
 			}
@@ -99,6 +132,8 @@ public class BPATransformer {
 				pPrime = new Place("p'_"+ev.getLabel());
 				processNet.addPlace(pPrime);
 				processNet.addEdge(t, pPrime);
+			} else {
+				// TODO how to indicate final marking?
 			}
 		}
 		return processNet;
@@ -110,21 +145,26 @@ public class BPATransformer {
 	 * @param allNets
 	 * @return a composed PetriNet
 	 */
-	private PetriNet compose(Collection<PetriNet> allNets) {
-		PetriNet composedNet = new ComposingPetriNet();
+	private NetSystem compose(Collection<PetriNet> allNets) {
+		NetSystem composedNet = new ComposingPetriNet();
 		
 		for (PetriNet pn : allNets) {
 			for (Place p : pn.getPlaces()) {
 				composedNet.addPlace(p);
 			}
 			for (AbstractDirectedEdge<Node> arc : pn.getEdges()) {
-				composedNet.addFreshFlow(arc.getSource(), arc.getTarget());
+				Flow newFlow = composedNet.addFreshFlow(arc.getSource(), arc.getTarget());
+				newFlow.setTag(arc.getTag());
+				newFlow.setName(arc.getName());
+			}
+			if (pn instanceof NetSystem) {
+				composedNet.getMarking().putAll(((NetSystem) pn).getMarking());
 			}
 		}
 		return composedNet;
 	}
 
-	private class ComposingPetriNet extends PetriNet {
+	private class ComposingPetriNet extends NetSystem {
 
 		Map<String,Place> existingPlaces = new HashMap<String,Place>();
 		
@@ -168,72 +208,94 @@ public class BPATransformer {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		//testing transformation
-		// some events
-		final ReceivingEvent e0 = new ReceivingEvent(0, 2, "p", new int[]{1});
-		final SendingEvent e1 = new SendingEvent(1,2,"q", new int[]{1,2} );
 		
-		final ReceivingEvent e2 = new ReceivingEvent(3, 4, "r",new int[]{3,4} );
-		final SendingEvent e3 = new SendingEvent(5,4,"s", new int[]{1});
-		final SendingEvent e4 = new SendingEvent(6, 4, "t", new int[]{1});
-
-		final ReceivingEvent e5 = new ReceivingEvent(7, 9, "u", new int[]{1});
-		final ReceivingEvent e6 = new ReceivingEvent(8,9,"v", new int[]{1} );
-		final SendingEvent e9 = new SendingEvent(13,9,"z", new int[]{1} );
+		// read json file
+		//File jsonPath =  new File(System.getenv("userprofile") + File.separator + "test.json");
+		try {
+			Path jsonPath = Paths.get(System.getenv("userprofile") + File.separator + "test.xml");
+			
+			// SAX using callbacks, sound complicated
+			//SAXParser sax = SAXParserFactory.newInstance().newSAXParser();
+			
+			// DOMBuilder in-memory, ok because DOM is small
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			Document doc = builder.parse(jsonPath.toFile());
+			NodeList json = doc.getElementsByTagName("json-representation");
+			if (json.getLength() > 0) {
+				org.w3c.dom.Node first = json.item(0);
+				JSONObject j = new JSONObject(first.getTextContent());
+				for (Iterator it = j.keys(); it.hasNext();) {
+					String key = (String) it.next();
+					Object obj = j.get(key);
+					if (obj instanceof String) {
+						String s = (String) obj;
+					}
+					
+					System.out.println(obj);
+					
+				}
+				
+//				JSONArray arr = j.getJSONArray("childShapes");
+//				for (int i = 0; i < arr.length() ; i++ ) {
+//						JSONObject jj = (JSONObject) arr.opt(i);
+//						System.out.println(jj.toString());
+//				}
+			}
+			//			List<String> lines = Files.readAllLines(jsonPath, StandardCharsets.UTF_8);
+//			for (String string : lines) {
+//				System.out.println(string);
+//			}
+			//BufferedReader r = new BufferedReader(new FileReader(jsonPath));
+			
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SAXException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParserConfigurationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		final ReceivingEvent e7 = new ReceivingEvent(10, 12, "x", new int[]{1});
-		final SendingEvent e8 = new SendingEvent(11,12,"y", new int[]{1} );
-		
-		e1.setPostset(Arrays.asList(e2,e5));
-		e2.setPreset(Arrays.asList(e1));
-		e5.setPreset(Arrays.asList(e1,e8));
-		e8.setPostset(Arrays.asList(e5));
-//		e3.setPostset(Arrays.asList(e7));
-//		e7.setPreset(Arrays.asList(e3));
-//		e4.setPostset(Arrays.asList(e6));
-//		e6.setPreset(Arrays.asList(e4));
-		
-		// two business processes make the bpa
-		BusinessProcess p1 = new BusinessProcess(Arrays.asList(e2,e4,e3));
-		BusinessProcess p2 = new BusinessProcess(Arrays.asList(e0, e1));
-		BusinessProcess p3 = new BusinessProcess(Arrays.asList(e5, e6, e9));
-		BusinessProcess p4 = new BusinessProcess(Arrays.asList(e7, e8));
-		BPA bpa = new BPA();
-		bpa.setProcesslist(Arrays.asList(p1,p2,p3,p4));
 		
 		// transform it
 		BPATransformer trans = new BPATransformer();
-		PetriNet result = trans.transform(bpa);
-		
-		//jbpt serializing PNML requires NetSystem instead of PetriNet
-		NetSystem pns = new NetSystem(result);
+		BPA testBPA = BPAExamples.complexBPA();
+		NetSystem pns = trans.transform(testBPA);
 		pns.setName("Testnetz");
-		//add nodes manually because constructor does not work as supposed
-		for (Node n : result.getNodes())
-			pns.addNode(n);
-		for (AbstractDirectedEdge<Node> f : result.getFlow()) {
-			Flow newFlow = pns.addFreshFlow(f.getSource(), f.getTarget());
-			if (f.getName() != "") 
-				newFlow.setName(f.getName());
-		}
+		String xmlString = InscriptionSerializer.serializeNet(pns);
+
+		//jbpt serializing PNML requires NetSystem instead of PetriNet
+		//NetSystem pns = trans.transform(BPAExamples.complexBPA);
+		//System.out.println(InscriptionSerializer.serializeNet(pns));
 		
 		// serialize and write to file
 		try {
 			File file = new File(System.getenv("userprofile") + File.separator + "test.pnml");
 			FileWriter fw = new FileWriter(file);
 			BufferedWriter bw = new BufferedWriter(fw);
-			bw.write(PNMLSerializer.serializePetriNet(pns));
+			bw.write(xmlString);
 			bw.close();
 			System.out.println("Transformation complete, written to: " + file);
 			System.out.println("Import with Renew (File-Import-XML-PNML) and choose Layout-Automatic Layout");
-		} catch (SerializationException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} 
 		
 		
 	}
+
 	
 
 	/**
@@ -353,7 +415,7 @@ public class BPATransformer {
 			multireceiver.addEdge(tmp, outPlace);
 			inFlow = multireceiver.addEdge(inPlace,tmp);
 			inFlow.setTag(new Integer(mult));
-			inFlow.setName("2");
+			//inFlow.setName(new Integer(mult).toString());
 		}
 		
 		return multireceiver;
@@ -435,7 +497,7 @@ public class BPATransformer {
 			multicaster.addEdge(inPlace, tmp);
 			outFlow = multicaster.addEdge(tmp, outPlace);
 			outFlow.setTag(new Integer(mult));
-			outFlow.setName("2");
+			//outFlow.setName("2");
 		}
 		return multicaster;
 	}

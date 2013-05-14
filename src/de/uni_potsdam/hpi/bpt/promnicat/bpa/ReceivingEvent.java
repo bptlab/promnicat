@@ -3,6 +3,7 @@
  */
 package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -11,7 +12,7 @@ import java.util.List;
  */
 public class ReceivingEvent extends Event {
 
-	private List<SendingEvent> preset;
+	private List<SendingEvent> preset = new ArrayList<SendingEvent>();
 	
 	public ReceivingEvent(int eventid, int bpid, String label, int[] mult) {
 		super(eventid, bpid, label, mult);
