@@ -1,11 +1,12 @@
 package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class BusinessProcess {
 	
-	List<Event> events;
+	List<Event> events = new ArrayList<Event>();
 	private String name;
 	final private UUID id;
 	
@@ -14,7 +15,7 @@ public class BusinessProcess {
 	}
 	
 	public BusinessProcess(String uuid) {
-		id = UUID.fromString(uuid);
+		id = UUID.fromString(uuid.substring(4));
 	}
 	
 	public BusinessProcess(List<Event> events,String name) {

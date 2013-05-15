@@ -2,9 +2,14 @@ package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
+/**
+ * @author rami.eidsabbagh
+ *
+ */
 public abstract class Event {
-private int id;
+private UUID id;
 private String label;
 private int[] multiplicity;
 private EventType type;
@@ -21,8 +26,8 @@ public enum EventType{
 	
 }
 
-public Event(int eventid,int bpid, String label, int[] mult){
-	this.id = eventid;
+public Event(String eventid,int bpid, String label, int[] mult){
+	this.id = UUID.fromString(eventid);
 	this.owner = bpid;
 	this.label = label;
 	this.multiplicity = mult;
@@ -41,8 +46,7 @@ public Event(int eventid,int bpid, String label, int[] mult){
  * @param mult
  */
 public Event(int bpid, String label, int[] mult) {
-	this(0,bpid,label, mult);
-	this.id = identify(this); 
+	this(UUID.randomUUID().toString(),bpid,label, mult);
 }
 
 
@@ -56,36 +60,28 @@ public Event (int bpid, String label) {
 }
 
 /**
- * Assigns (Integer) IDs to an event if it has none,
- * returns existing ID otherwise. 
+ * @param label
  */
-private static Integer identify(Event e) {
-	if (ids.containsKey(e)) {
-		return ids.get(e);
-	} else {
-		ids.put(e, maxId++);
-		return maxId; 
-	}
+public Event (String label){
+	this(0,label);
 }
 
-public int getID(){
-	return this.id;
+
+public String getID(){
+	return id.toString();
 }
 
 public void setLabel(String newlabel){
 	this.label = newlabel;
 }
 
-
 public String getLabel(){
-	
 	return this.label;
-	
 }
+
 public void setMultiplicity(int[] mult){
 	this.multiplicity = mult;
 }
-
 
 public int[] getMultiplicity(){
 	return this.multiplicity;
@@ -100,7 +96,6 @@ public int getOwner(){
 //}
 
 public EventType getType(){
-	
 	return this.type;
 }
 

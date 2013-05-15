@@ -10,11 +10,11 @@ import java.util.List;
  * @author rami.eidsabbagh
  *
  */
-public class ReceivingEvent extends Event {
+public abstract class ReceivingEvent extends Event {
 
 	private List<SendingEvent> preset = new ArrayList<SendingEvent>();
 	
-	public ReceivingEvent(int eventid, int bpid, String label, int[] mult) {
+	public ReceivingEvent(String eventid, int bpid, String label, int[] mult) {
 		super(eventid, bpid, label, mult);
 	}
 	
@@ -26,6 +26,13 @@ public class ReceivingEvent extends Event {
 		super(bpid, label);
 	}
 	
+	/**
+	 * @param label
+	 */
+	public ReceivingEvent(String label) {
+		super(label);
+	}
+
 	public List<SendingEvent> getPreset(){
 		return preset;
 	}

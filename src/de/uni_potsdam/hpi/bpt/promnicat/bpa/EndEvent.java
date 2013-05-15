@@ -18,7 +18,7 @@ public class EndEvent extends SendingEvent {
 	 * @param label
 	 * @param mult
 	 */
-	public EndEvent(int eventid, int bpid, String label, int[] mult) {
+	public EndEvent(String eventid, int bpid, String label, int[] mult) {
 		super(eventid, bpid, label, mult);
 		// TODO Auto-generated constructor stub
 		this.type = EndEvent.EventType.ENDEVENT;
@@ -34,7 +34,7 @@ public class EndEvent extends SendingEvent {
 		// TODO Auto-generated constructor stub
 		this.type = EndEvent.EventType.ENDEVENT;
 	}
-
+	
 	/**
 	 * @param bpid
 	 * @param label
@@ -45,6 +45,13 @@ public class EndEvent extends SendingEvent {
 		this.type = EndEvent.EventType.ENDEVENT;
 	}
 	
+	/**
+	 * @param label
+	 */
+	public EndEvent(String label) {
+		super(label);
+	}
+
 	public EventType getType() {
 		return this.type;
 	}

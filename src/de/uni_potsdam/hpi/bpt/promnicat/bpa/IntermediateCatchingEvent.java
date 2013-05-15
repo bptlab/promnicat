@@ -17,10 +17,9 @@ public class IntermediateCatchingEvent extends ReceivingEvent {
 	 * @param label
 	 * @param mult
 	 */
-	public IntermediateCatchingEvent(int eventid, int bpid, String label,
+	public IntermediateCatchingEvent(String eventid, int bpid, String label,
 			int[] mult) {
 		super(eventid, bpid, label, mult);
-		// TODO Auto-generated constructor stub
 		this.type = IntermediateCatchingEvent.EventType.CATCHINGINTEVENT;
 	}
 
@@ -31,7 +30,6 @@ public class IntermediateCatchingEvent extends ReceivingEvent {
 	 */
 	public IntermediateCatchingEvent(int bpid, String label, int[] mult) {
 		super(bpid, label, mult);
-		// TODO Auto-generated constructor stub
 		this.type = IntermediateCatchingEvent.EventType.CATCHINGINTEVENT;
 	}
 
@@ -41,10 +39,17 @@ public class IntermediateCatchingEvent extends ReceivingEvent {
 	 */
 	public IntermediateCatchingEvent(int bpid, String label) {
 		super(bpid, label);
-		// TODO Auto-generated constructor stub
 		this.type = IntermediateCatchingEvent.EventType.CATCHINGINTEVENT;
 	}
 	
+	/**
+	 * @param label
+	 */
+	public IntermediateCatchingEvent(String label) {
+		super(label);
+		this.type = IntermediateCatchingEvent.EventType.CATCHINGINTEVENT;
+	}
+
 	public EventType getType() {
 		return this.type;
 	}

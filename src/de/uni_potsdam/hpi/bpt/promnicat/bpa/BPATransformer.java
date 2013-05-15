@@ -252,11 +252,15 @@ public class BPATransformer {
                 Map<String,List<String>> postSetMapper = new HashMap<String, List<String>>();
                 Map<String,List<String>> preSetMapper = new HashMap<String, List<String>>();
                 Map<BusinessProcess,List<String>> processEventMapper = new HashMap<BusinessProcess, List<String>>();
+                Relation relation = new Relation();
                 for (Shape shape : shapes) {
 					String stencilId = shape.getStencilId();
 					String resourceId = shape.getResourceId();
+					int[] multiplicity = null; 
+					 if (isSending(stencilId) || isReceiving(stencilId)) {
+						 multiplicity = convertMultiplicity(shape.getProperty("Multiplicity"));
+					 }
 					if (isSending(stencilId)) {
-						// TODO here we get Message-Shape
 						List<Shape> out = shape.getOutgoings();
 						List<String> outIds = new ArrayList<String>();
 						for (Shape messageShape : out) {
@@ -275,7 +279,7 @@ public class BPATransformer {
 					} else if (stencilId.equals("BPAProcess")) {
 						ArrayList<Shape> childEvents = shape.getChildShapes();
 						List<String> eventIds = new ArrayList<String>();
-						BusinessProcess bp = new BusinessProcess();
+						BusinessProcess bp = new BusinessProcess(resourceId);
 						Collections.sort(childEvents, new Comparator<Shape>() {
 							@Override
 							public int compare(Shape arg0, Shape arg1) {
@@ -293,18 +297,20 @@ public class BPATransformer {
 					// awkward event creation, TODO: use a factory
 					if (stencilId.equals("EndEvent")) {
 						// TODO: Label events in signavio?
-						Event ev = new EndEvent(0, "blub");
+						Event ev = new EndEvent(shape.getProperty("name"));
+						ev.setMultiplicity(multiplicity);
 						eventMapper.put(resourceId, ev);
 					} else if (stencilId.equals("StartEvent")) {
-						StartEvent ev = new StartEvent(0, "start");
+						StartEvent ev = new StartEvent(shape.getProperty("name"));
+						ev.setMultiplicity(multiplicity);
 						eventMapper.put(resourceId, ev);
 					} else if (stencilId.equals("IntermediateCatchingEvent")) {
-						IntermediateCatchingEvent ev = new IntermediateCatchingEvent(
-								0, "catch");
+						IntermediateCatchingEvent ev = new IntermediateCatchingEvent(shape.getProperty("name"));
+						ev.setMultiplicity(multiplicity);
 						eventMapper.put(resourceId, ev);
 					} else if (stencilId.equals("IntermediateThrowingEvent")) {
-						IntermediateThrowingEvent ev = new IntermediateThrowingEvent(
-								0, "throw");
+						IntermediateThrowingEvent ev = new IntermediateThrowingEvent(shape.getProperty("name"));
+						ev.setMultiplicity(multiplicity);
 						eventMapper.put(resourceId, ev);
 					}
 				}
@@ -317,6 +323,7 @@ public class BPATransformer {
 					for (String postId : postSetMapper.get(rid)) {
 						System.out.println("eventID: "+rid+" Postset :"+postId);
 						postSet.add((ReceivingEvent) eventMapper.get(postId));
+						
 					}
 					if (ev instanceof SendingEvent) {
 						((SendingEvent) ev).setPostset(postSet);
@@ -340,6 +347,8 @@ public class BPATransformer {
                 	}
 				}
                 
+                BPA bpa = new BPA();
+                bpa.setProcesslist(new ArrayList<BusinessProcess>(processEventMapper.keySet()));
                 
 			}
 		} catch (FileNotFoundException e1) {
@@ -413,7 +422,20 @@ public class BPATransformer {
 	private static boolean isMTFlow(String sid) {
 		return sid.equals("Message") || sid.equals("Trigger");
 	}
-
+	
+	private static int[] convertMultiplicity(String multiplicity){
+		if (multiplicity != null && !multiplicity.isEmpty()) {
+			String[] multArray = multiplicity.replaceAll("\\W","").split(",");
+			int[] intMultiplicity = new int[multArray.length];
+			for (int i = 0; i < multArray.length; i++) {
+				intMultiplicity[i] = Integer.parseInt(multArray[i]); 
+			}
+			return intMultiplicity;
+		} else {
+			return new int[]{1};
+		}
+	}
+	
 	/**
 	 * Generates the intermediary nets for a given event. This needs to be
 	 * a list because some events produce e.g. multicast and splitter net.

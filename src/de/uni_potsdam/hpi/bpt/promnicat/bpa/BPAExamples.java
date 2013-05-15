@@ -13,7 +13,7 @@ public class BPAExamples {
 	public static BPA simpleBPA() {
 		BPA simpleBPA = new BPA();
 		Event e1 = new StartEvent(0, "b");
-		SendingEvent e2 = new SendingEvent(0, "s", new int[]{1,2,3});
+		SendingEvent e2 = new IntermediateThrowingEvent(0,"s", new int[]{1,2,3});
 		List<Event> eventsA = Arrays.asList(e1,e2);
 		BusinessProcess broadcaster = new BusinessProcess(eventsA , "Broadcaster");
 		
@@ -32,19 +32,19 @@ public class BPAExamples {
 	}
 
 	public static BPA complexBPA() {
-		final StartEvent e0 = new StartEvent(0, 2, "p", new int[]{1});
-		final SendingEvent e1 = new SendingEvent(1,2,"q", new int[]{1,2} );
+		final StartEvent e0 = new StartEvent(2, "p", new int[]{1});
+		final SendingEvent e1 = new EndEvent(2,"q", new int[]{1,2} );
 		
-		final ReceivingEvent e2 = new IntermediateCatchingEvent(3, 4, "r",new int[]{3,4} );
-		final SendingEvent e3 = new SendingEvent(5,4,"s", new int[]{1});
-		final SendingEvent e4 = new SendingEvent(6, 4, "t", new int[]{1});
+		final ReceivingEvent e2 = new IntermediateCatchingEvent(4, "r",new int[]{3,4} );
+		final SendingEvent e3 = new IntermediateThrowingEvent(4,"s", new int[]{1});
+		final SendingEvent e4 = new EndEvent(4, "t", new int[]{1});
 
-		final ReceivingEvent e5 = new IntermediateCatchingEvent(7, 9, "u", new int[]{1});
-		final ReceivingEvent e6 = new ReceivingEvent(8,9,"v", new int[]{1} );
-		final SendingEvent e9 = new SendingEvent(13,9,"z", new int[]{1} );
+		final ReceivingEvent e5 = new IntermediateCatchingEvent(9, "u", new int[]{1});
+		final ReceivingEvent e6 = new IntermediateCatchingEvent(9,"v", new int[]{1} );
+		final SendingEvent e9 = new IntermediateThrowingEvent(9,"z", new int[]{1} );
 		
-		final ReceivingEvent e7 = new ReceivingEvent(10, 12, "x", new int[]{1});
-		final SendingEvent e8 = new SendingEvent(11,12,"y", new int[]{1} );
+		final ReceivingEvent e7 = new StartEvent(12, "x", new int[]{1});
+		final SendingEvent e8 = new EndEvent(12,"y", new int[]{1} );
 		
 		
 //		e1.setPostset(Arrays.asList(e2,e5));
