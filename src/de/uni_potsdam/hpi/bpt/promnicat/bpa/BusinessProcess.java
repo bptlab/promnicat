@@ -13,6 +13,10 @@ public class BusinessProcess {
 		id = UUID.randomUUID();
 	}
 	
+	public BusinessProcess(String uuid) {
+		id = UUID.fromString(uuid);
+	}
+	
 	public BusinessProcess(List<Event> events,String name) {
 		id = UUID.randomUUID();
 		this.events = events;

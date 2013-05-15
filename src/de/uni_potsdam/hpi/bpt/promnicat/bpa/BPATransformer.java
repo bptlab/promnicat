@@ -17,6 +17,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -211,6 +213,9 @@ public class BPATransformer {
 		
 	}
 	
+	/**
+	 * @param args
+	 */
 	@SuppressWarnings("serial")
 	/**
 	 * Testing
@@ -237,18 +242,16 @@ public class BPATransformer {
 					if (obj instanceof String) {
 						String s = (String) obj;
 					}
-					
-					System.out.println(key+"-> "+obj);
-					
+					//System.out.println(key+"-> "+obj);
 				}
 				
 				// let bpmai parse json to diagram
 				Diagram diag = DiagramBuilder.parseJson(j);
                 List<Shape> shapes = diag.getShapes();
                 Map<String, Event> eventMapper = new HashMap<String, Event>();
-                Map<String,List<String>> prepostMapper = new HashMap<String, List<String>>();
                 Map<String,List<String>> postSetMapper = new HashMap<String, List<String>>();
                 Map<String,List<String>> preSetMapper = new HashMap<String, List<String>>();
+                Map<BusinessProcess,List<String>> processEventMapper = new HashMap<BusinessProcess, List<String>>();
                 for (Shape shape : shapes) {
 					String stencilId = shape.getStencilId();
 					String resourceId = shape.getResourceId();
@@ -256,47 +259,36 @@ public class BPATransformer {
 						// TODO here we get Message-Shape
 						List<Shape> out = shape.getOutgoings();
 						List<String> outIds = new ArrayList<String>();
-						for (Shape target : out) {
-							//System.out.println("Flowtype: "+target.getStencilId()+" ID: "+target.getResourceId());
-							//System.out.println("Flow target "+target.getTarget().getResourceId());
-							//System.out.println("Flow target "+target.getTarget().getStencilId());
+						for (Shape messageShape : out) {
 							// Puts Target Event Id into ArrayList
-							outIds.add(target.getTarget().getResourceId());
-							if (null == preSetMapper.get(target.getTarget().getResourceId())) {
+							outIds.add(messageShape.getTarget().getResourceId());
+							if (null == preSetMapper.get(messageShape.getTarget().getResourceId())) {
 								List<String> inIds = new ArrayList<String>();
-								System.out.println("Preset Candidate: "+resourceId+" size of new before list"+inIds.size());
 								inIds.add(resourceId);
-								System.out.println("Preset Candidate: "+resourceId+" size of new list"+inIds.size());
-								preSetMapper.put(target.getTarget().getResourceId(), inIds);	
+								preSetMapper.put(messageShape.getTarget().getResourceId(), inIds);	
 							} else {
-								List<String> inIds = preSetMapper.get(target.getTarget().getResourceId());
-								System.out.println("Preset Candidate: "+resourceId+" size of list"+inIds.size());
+								List<String> inIds = preSetMapper.get(messageShape.getTarget().getResourceId());
 								inIds.add(resourceId);
-								preSetMapper.put(target.getTarget().getResourceId(), inIds);
-							}
-								
-							
-							
+							}							
 						}
 						postSetMapper.put(resourceId, outIds);
-						
-					} 
-//						else if (isReceiving(stencilId)) {
-//						//TODO here we get Message-Shape
-//						List<Shape> in = shape.getIncomings();
-//						List<String> inIds = new ArrayList<String>();
-//						for (Shape source : in) {
-//							//System.out.println("Incoming :"+source.getResourceId());
-//							//System.out.println("Flowtype: "+source.getStencilId()+" ID: "+source.getResourceId());
-//							//System.out.println("Flow target "+source.getIncomings().getResourceId());
-//							inIds.add(source.getResourceId());
-//						}
-//						preSetMapper.put(resourceId, inIds);
-//					}
-					if (isMTFlow(stencilId)) {
-						//System.out.println("This is a :"+shape.getStencilId());
-						//System.out.println(shape.getResourceId());
-						//System.out.println(shape.getTarget().getResourceId());
+					} else if (stencilId.equals("BPAProcess")) {
+						ArrayList<Shape> childEvents = shape.getChildShapes();
+						List<String> eventIds = new ArrayList<String>();
+						BusinessProcess bp = new BusinessProcess();
+						Collections.sort(childEvents, new Comparator<Shape>() {
+							@Override
+							public int compare(Shape arg0, Shape arg1) {
+								return ((Double)arg0.getUpperLeft().getX()).compareTo(arg1.getUpperLeft().getX());
+							}
+						});
+						for (Shape child : childEvents) {
+							System.out.println(child.getUpperLeft().getX());
+							String childId = child.getResourceId();
+							eventIds.add(childId);
+						}
+						processEventMapper.put(bp,eventIds);
+						System.out.println("BP Events: "+eventIds);
 					}
 					// awkward event creation, TODO: use a factory
 					if (stencilId.equals("EndEvent")) {
@@ -318,9 +310,6 @@ public class BPATransformer {
 				}
 
 				// now that all events are created, link them
-                
-                
-                
                 for (String rid : postSetMapper.keySet()) {
                 	System.out.println(rid);
                 	Event ev = eventMapper.get(rid);
@@ -345,39 +334,14 @@ public class BPATransformer {
 						((ReceivingEvent) ev).setPreset(preSet);
 					}
 				}
+                for (BusinessProcess bp : processEventMapper.keySet()) {
+                	for (String eventId : processEventMapper.get(bp)) {
+                		bp.addEvent(eventMapper.get(eventId));	
+                	}
+				}
                 
                 
-                //System.out.println(prepostMapper);
-                
-                
-//                List<Event> events;
-//                for (Shape shape : shapes) {
-//                	if (shape.getStencilId().equals("BPAProcess")) {
-//                        //handle processes
-//                        ArrayList<Shape> childs = shape.getChildShapes();
-//                        for (Shape shape2 : childs) {
-//                            if (shape2.getStencilId().equals("StartEvent")) {
-//
-//                            }
-//                        }
-//                        BusinessProcess proc = new BusinessProcess(events, shape.getProperties().get("name"));
-//                    }
-//                    System.out.println(shape.getStencilId());
-//                }
-//                System.out.println(diag); 
-				
-//				JSONArray arr = j.getJSONArray("childShapes");
-//				for (int i = 0; i < arr.length() ; i++ ) {
-//						JSONObject jj = (JSONObject) arr.opt(i);
-//						System.out.println(jj.toString());
-//				}
 			}
-			//			List<String> lines = Files.readAllLines(jsonPath, StandardCharsets.UTF_8);
-//			for (String string : lines) {
-//				System.out.println(string);
-//			}
-			//BufferedReader r = new BufferedReader(new FileReader(jsonPath));
-			
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
