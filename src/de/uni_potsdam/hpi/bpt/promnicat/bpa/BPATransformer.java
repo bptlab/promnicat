@@ -3,7 +3,6 @@ package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -12,21 +11,14 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
@@ -36,17 +28,8 @@ import org.jbpt.petri.*;
 import org.jbpt.petri.io.PNMLSerializer;
 import org.jbpt.throwable.SerializationException;
 import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.omg.CosNaming.NamingContextPackage.NotEmpty;
-import org.w3c.dom.DOMException;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import de.uni_potsdam.hpi.bpt.ai.diagram.Diagram;
-import de.uni_potsdam.hpi.bpt.ai.diagram.DiagramBuilder;
-import de.uni_potsdam.hpi.bpt.ai.diagram.Shape;
 
 /**
  * Transforms a {@link BPA} (subset) into a Petri Net.
@@ -224,158 +207,14 @@ public class BPATransformer {
 	public static void main(String[] args) {
 		
 		// read json file
-		//File jsonPath =  new File(System.getenv("userprofile") + File.separator + "test.json");
-		try {
-			Path jsonPath = Paths.get(System.getenv("userprofile") + File.separator + "test.xml");
-			
-			// DOMBuilder in-memory, ok because DOM is small
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder builder = factory.newDocumentBuilder();
-			Document doc = builder.parse(jsonPath.toFile());
-			NodeList json = doc.getElementsByTagName("json-representation");
-			if (json.getLength() > 0) {
-				org.w3c.dom.Node first = json.item(0);
-				JSONObject j = new JSONObject(first.getTextContent());
-				for (Iterator it = j.keys(); it.hasNext();) {
-					String key = (String) it.next();
-					Object obj = j.get(key);
-					if (obj instanceof String) {
-						String s = (String) obj;
-					}
-					//System.out.println(key+"-> "+obj);
-				}
-				
-				// let bpmai parse json to diagram
-				Diagram diag = DiagramBuilder.parseJson(j);
-                List<Shape> shapes = diag.getShapes();
-                Map<String, Event> eventMapper = new HashMap<String, Event>();
-                Map<String,List<String>> postSetMapper = new HashMap<String, List<String>>();
-                Map<String,List<String>> preSetMapper = new HashMap<String, List<String>>();
-                Map<BusinessProcess,List<String>> processEventMapper = new HashMap<BusinessProcess, List<String>>();
-                Relation relation = new Relation();
-                for (Shape shape : shapes) {
-					String stencilId = shape.getStencilId();
-					String resourceId = shape.getResourceId();
-					int[] multiplicity = null; 
-					 if (isSending(stencilId) || isReceiving(stencilId)) {
-						 multiplicity = convertMultiplicity(shape.getProperty("Multiplicity"));
-					 }
-					if (isSending(stencilId)) {
-						List<Shape> out = shape.getOutgoings();
-						List<String> outIds = new ArrayList<String>();
-						for (Shape messageShape : out) {
-							// Puts Target Event Id into ArrayList
-							outIds.add(messageShape.getTarget().getResourceId());
-							if (null == preSetMapper.get(messageShape.getTarget().getResourceId())) {
-								List<String> inIds = new ArrayList<String>();
-								inIds.add(resourceId);
-								preSetMapper.put(messageShape.getTarget().getResourceId(), inIds);	
-							} else {
-								List<String> inIds = preSetMapper.get(messageShape.getTarget().getResourceId());
-								inIds.add(resourceId);
-							}							
-						}
-						postSetMapper.put(resourceId, outIds);
-					} else if (stencilId.equals("BPAProcess")) {
-						ArrayList<Shape> childEvents = shape.getChildShapes();
-						List<String> eventIds = new ArrayList<String>();
-						BusinessProcess bp = new BusinessProcess(resourceId);
-						Collections.sort(childEvents, new Comparator<Shape>() {
-							@Override
-							public int compare(Shape arg0, Shape arg1) {
-								return ((Double)arg0.getUpperLeft().getX()).compareTo(arg1.getUpperLeft().getX());
-							}
-						});
-						for (Shape child : childEvents) {
-							System.out.println(child.getUpperLeft().getX());
-							String childId = child.getResourceId();
-							eventIds.add(childId);
-						}
-						processEventMapper.put(bp,eventIds);
-						System.out.println("BP Events: "+eventIds);
-					}
-					// awkward event creation, TODO: use a factory
-					if (stencilId.equals("EndEvent")) {
-						// TODO: Label events in signavio?
-						Event ev = new EndEvent(shape.getProperty("name"));
-						ev.setMultiplicity(multiplicity);
-						eventMapper.put(resourceId, ev);
-					} else if (stencilId.equals("StartEvent")) {
-						StartEvent ev = new StartEvent(shape.getProperty("name"));
-						ev.setMultiplicity(multiplicity);
-						eventMapper.put(resourceId, ev);
-					} else if (stencilId.equals("IntermediateCatchingEvent")) {
-						IntermediateCatchingEvent ev = new IntermediateCatchingEvent(shape.getProperty("name"));
-						ev.setMultiplicity(multiplicity);
-						eventMapper.put(resourceId, ev);
-					} else if (stencilId.equals("IntermediateThrowingEvent")) {
-						IntermediateThrowingEvent ev = new IntermediateThrowingEvent(shape.getProperty("name"));
-						ev.setMultiplicity(multiplicity);
-						eventMapper.put(resourceId, ev);
-					}
-				}
-
-				// now that all events are created, link them
-                for (String rid : postSetMapper.keySet()) {
-                	System.out.println(rid);
-                	Event ev = eventMapper.get(rid);
-                	List<ReceivingEvent> postSet = new ArrayList<ReceivingEvent>();
-					for (String postId : postSetMapper.get(rid)) {
-						System.out.println("eventID: "+rid+" Postset :"+postId);
-						postSet.add((ReceivingEvent) eventMapper.get(postId));
-						
-					}
-					if (ev instanceof SendingEvent) {
-						((SendingEvent) ev).setPostset(postSet);
-					}
-				}
-                for (String rid : preSetMapper.keySet()) {
-                	System.out.println(rid);
-                	Event ev = eventMapper.get(rid);
-                	List<SendingEvent> preSet = new ArrayList<SendingEvent>();
-					for (String preId : preSetMapper.get(rid)) {
-						System.out.println("eventID: "+rid+" Preset :"+preId);
-						preSet.add((SendingEvent) eventMapper.get(preId));
-					}
-					if (ev instanceof ReceivingEvent) {
-						((ReceivingEvent) ev).setPreset(preSet);
-					}
-				}
-                for (BusinessProcess bp : processEventMapper.keySet()) {
-                	for (String eventId : processEventMapper.get(bp)) {
-                		bp.addEvent(eventMapper.get(eventId));	
-                	}
-				}
-                
-                BPA bpa = new BPA();
-                bpa.setProcesslist(new ArrayList<BusinessProcess>(processEventMapper.keySet()));
-                
-			}
-		} catch (FileNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SAXException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ParserConfigurationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (DOMException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		File jsonPath =  new File(System.getenv("userprofile") + File.separator + "test.xml");
+		BPA bpa = BPAImporter.fromXML(jsonPath);
 		
 		
 		// transform it
 		BPATransformer trans = new BPATransformer();
-		BPA testBPA = BPAExamples.complexBPA();
-		NetSystem pns = trans.transform(testBPA);
+		//BPA testBPA = BPAExamples.complexBPA();
+		NetSystem pns = trans.transform(bpa);
 		pns.setName("Testnetz");
 		String xmlString = InscriptionSerializer.serializeNet(pns);
 
@@ -399,43 +238,6 @@ public class BPATransformer {
 		
 	}
 
-	/**
-	 * @param sid
-	 * @return
-	 */
-	private static boolean isReceiving(String sid) {
-		return sid.equals("IntermediateCatchingEvent") || sid.equals("StartEvent");
-	}
-
-	/**
-	 * @param sid
-	 * @return
-	 */
-	private static boolean isSending(String sid) {
-		return sid.equals("IntermediateThrowingEvent") || sid.equals("EndEvent");
-	}
-
-	/**
-	 * @param sid
-	 * @return
-	 */
-	private static boolean isMTFlow(String sid) {
-		return sid.equals("Message") || sid.equals("Trigger");
-	}
-	
-	private static int[] convertMultiplicity(String multiplicity){
-		if (multiplicity != null && !multiplicity.isEmpty()) {
-			String[] multArray = multiplicity.replaceAll("\\W","").split(",");
-			int[] intMultiplicity = new int[multArray.length];
-			for (int i = 0; i < multArray.length; i++) {
-				intMultiplicity[i] = Integer.parseInt(multArray[i]); 
-			}
-			return intMultiplicity;
-		} else {
-			return new int[]{1};
-		}
-	}
-	
 	/**
 	 * Generates the intermediary nets for a given event. This needs to be
 	 * a list because some events produce e.g. multicast and splitter net.
