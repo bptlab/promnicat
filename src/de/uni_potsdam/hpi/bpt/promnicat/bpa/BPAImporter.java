@@ -75,7 +75,11 @@ public class BPAImporter {
 				String name = shape.getProperty("name");
 				System.out.println(" --- Event name : " + name);
 				if (isSending(shapeType) || isReceiving(shapeType)) {
-					int[] multiplicity = BPAImporter.convertMultiplicity(shape.getProperty("Multiplicity"));
+					int[] multiplicity = BPAImporter.convertMultiplicity(shape.getProperty("multiplicity"));
+					for (int i = 0; i < multiplicity.length; i++) {
+						System.out.println(multiplicity[i]);
+					}
+					
 					Event ev = createEvent(shapeType, name);
 					ev.setMultiplicity(multiplicity);
 					eventMapper.put(resourceId, ev);
@@ -154,7 +158,7 @@ public class BPAImporter {
 			}
 			bpa = new BPA();
 			bpa.setProcesslist(new ArrayList<BusinessProcess>(processEventMapper.keySet()));
-
+			
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -218,10 +222,15 @@ public class BPAImporter {
 
 	private static int[] convertMultiplicity(String multiplicity) {
 		if (multiplicity != null && !multiplicity.isEmpty()) {
-			String[] multArray = multiplicity.replaceAll("\\W", "").split(",");
+			
+			String[] multArray  = multiplicity.replaceAll("\\s","").split(",");
+			     
+			      
 			int[] intMultiplicity = new int[multArray.length];
 			for (int i = 0; i < multArray.length; i++) {
+				
 				intMultiplicity[i] = Integer.parseInt(multArray[i]);
+				System.out.println("multarray: "+multArray[i]+" int mult: "+intMultiplicity[i]);
 			}
 			return intMultiplicity;
 		} else {
