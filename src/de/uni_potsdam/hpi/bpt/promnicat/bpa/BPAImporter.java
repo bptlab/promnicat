@@ -73,6 +73,7 @@ public class BPAImporter {
 				String shapeType = shape.getStencilId();
 				String resourceId = shape.getResourceId();
 				String name = shape.getProperty("name");
+				System.out.println(" --- Event name : " + name);
 				if (isSending(shapeType) || isReceiving(shapeType)) {
 					int[] multiplicity = BPAImporter.convertMultiplicity(shape.getProperty("Multiplicity"));
 					Event ev = createEvent(shapeType, name);

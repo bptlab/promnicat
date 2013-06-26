@@ -44,7 +44,8 @@ public class InscriptionSerializer extends PNMLSerializer {
 		Document doc = null;
 		String docXML = null;
 		try {
-			doc = PNMLSerializer.serialize((NetSystem) net, LOLA);
+			// not passing LOLA switch, no final markings required 
+			doc = PNMLSerializer.serialize((NetSystem) net);
 		} catch (SerializationException e) {
 			e.printStackTrace();
 		}

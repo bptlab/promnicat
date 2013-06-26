@@ -42,11 +42,19 @@ import org.omg.CosNaming.NamingContextPackage.NotEmpty;
  */
 public class BPATransformer {
 	
+	private final String INTERNAL_PLACE = "intern_"; // replaces p'
+	private final String INTERMEDIARY_PLACE = "q_"; // replaces p''
+	private final String NORMAL_PLACE = "p_"; 
+	
+	private List<String> formulae = new ArrayList<String>();
+	private final File workDir;
+	
+	
 	/**
 	 * TODO: Should I take a strategy to allow different types of transformations?
 	 */
 	public BPATransformer() {
-	// nothing to do here
+		workDir = new File(System.getenv("userprofile") + File.separator + "signavio");
 	}
 	
 	/**
@@ -55,6 +63,7 @@ public class BPATransformer {
 	 * @return
 	 */
 	public NetSystem transform(BPA bpa) {
+		System.out.println("Starting transformation of BPA " + bpa);
 		List<BusinessProcess> processes = bpa.getAllProcesses();
 		Map<BusinessProcess,PetriNet> resultingNets = new HashMap<BusinessProcess,PetriNet>();
 		Map<Event, List<PetriNet>> intermediaryNets = new HashMap<Event, List<PetriNet>>();
@@ -62,6 +71,7 @@ public class BPATransformer {
 		
 		// process nets
 		for (BusinessProcess process : processes) {
+			System.out.println(" - Transforming process " + process);
 			resultingNets.put(process, transform(process));
 		}
 		// intermediary nets
@@ -69,6 +79,7 @@ public class BPATransformer {
 		for (Event event : allEvents) {
 			List<PetriNet> transformed = transform(event);
 			if (!transformed.isEmpty()) {
+				System.out.println(" - Transforming event " + event + " into intermediary net");
 				intermediaryNets.put(event, transformed);
 			}
 		}
@@ -90,17 +101,17 @@ public class BPATransformer {
 	 */
 	private PetriNet transform(BusinessProcess process) {
 		NetSystem processNet = new NetSystem();
-		// iterate over events, construct process' net
 		Boolean first = true;
 		Place p, pPrime = null;
 		Transition t;
-		//Marking initialMarking = new Marking(processNet);
-//		initialMarking.createMarking(processNet);
+		StringBuilder formula = new StringBuilder("FORMULA ");
+		// iterate over events, construct process' net
 		Iterator<Event> iter = process.getEvents().iterator();
 		while (iter.hasNext()) {	
 			Event ev = iter.next();
-			p = new Place("p_"+ev.getLabel());
+			p = new Place(NORMAL_PLACE + ev.getLabel());
 			t = new Transition("t_"+ev.getLabel());
+			System.out.println(" -- Handling event " + ev.getLabel() + ", created place " + p.getName());
 			processNet.addTransition(t);
 			processNet.addPlace(p);
 	
@@ -109,13 +120,19 @@ public class BPATransformer {
 				processNet.addEdge(t,p);
 			} else if (ev instanceof ReceivingEvent) {
 				processNet.addEdge(p, t);
+				if (!first) formula.append(p.getLabel() + " = 0 AND ");
 			}
 
 			// handle start event, no pPrime exists for it
 			if (first) {
 				first = false;
-				if (ev instanceof StartEvent && ((StartEvent) ev).isInitialPlace()) { 
-					processNet.getMarking().put(p,1);
+				if (ev instanceof StartEvent) {
+					// build CTL formula
+					formula.append(p.getLabel() + " > 0 OR ( EXPATH EVENTUALLY ");
+					if (((StartEvent) ev).isInitialPlace()) { 
+						// put token on initial place 
+						processNet.getMarking().put(p,1);
+					}
 				}
 			} else {
 				processNet.addEdge(pPrime, t);
@@ -123,13 +140,17 @@ public class BPATransformer {
 
 			// add new pPrime if not last element
 			if (iter.hasNext()) { 
-				pPrime = new Place("p'_"+ev.getLabel());
+				pPrime = new Place(INTERNAL_PLACE + ev.getLabel());
 				processNet.addPlace(pPrime);
 				processNet.addEdge(t, pPrime);
+				formula.append(pPrime.getLabel() + " = 0 AND ");
 			} else {
-				// TODO how to indicate final marking?
+				// close CTL formula
+				formula.append(p.getLabel() + " > 0 )");
 			}
 		}
+		System.out.println(" -- CTL formula : " + formula);
+		formulae.add(formula.toString());
 		return processNet;
 	}
 
@@ -141,8 +162,9 @@ public class BPATransformer {
 	 */
 	private NetSystem compose(Collection<PetriNet> allNets) {
 		NetSystem composedNet = new ComposingPetriNet();
-		
+		System.out.println("Starting composition of " + allNets.size() + " nets.");
 		for (PetriNet pn : allNets) {
+			System.out.println(" - Merging petri net " + pn);
 			for (Place p : pn.getPlaces()) {
 				composedNet.addPlace(p);
 			}
@@ -152,6 +174,8 @@ public class BPATransformer {
 				newFlow.setName(arc.getName());
 			}
 			if (pn instanceof NetSystem) {
+				Marking mark = ((NetSystem) pn).getMarking();
+				System.out.println("  -- Marking: " + mark);
 				composedNet.getMarking().putAll(((NetSystem) pn).getMarking());
 			}
 		}
@@ -205,28 +229,24 @@ public class BPATransformer {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		
+		// TODO: get reference to instance of this? Does it make sense?
+		BPATransformer trans = new BPATransformer();
+
 		// read json file
-		File jsonPath =  new File(System.getenv("userprofile") + File.separator + "test.xml");
+		File jsonPath =  new File(trans.workDir,"bpa-test.xml");
 		BPA bpa = BPAImporter.fromXML(jsonPath);
 		
-		
 		// transform it
-		BPATransformer trans = new BPATransformer();
-		//BPA testBPA = BPAExamples.complexBPA();
+//		BPA testBPA = BPAExamples.complexBPA();
+//		NetSystem pns = trans.transform(testBPA);
 		NetSystem pns = trans.transform(bpa);
 		pns.setName("Testnetz");
 		String xmlString = InscriptionSerializer.serializeNet(pns);
-
-		//jbpt serializing PNML requires NetSystem instead of PetriNet
-		//NetSystem pns = trans.transform(BPAExamples.complexBPA);
-		//System.out.println(InscriptionSerializer.serializeNet(pns));
 		
 		// serialize and write to file
 		try {
-			File file = new File(System.getenv("userprofile") + File.separator + "test.pnml");
-			FileWriter fw = new FileWriter(file);
-			BufferedWriter bw = new BufferedWriter(fw);
+			File file = new File(trans.workDir, "test.pnml");
+			BufferedWriter bw = new BufferedWriter(new FileWriter(file));
 			bw.write(xmlString);
 			bw.close();
 			System.out.println("Transformation complete, written to: " + file);
@@ -234,6 +254,22 @@ public class BPATransformer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		} 
+		
+		// writing task files to be checked by lola
+		int i = 1;
+		File taskFile; 
+		for (String formula : trans.formulae) {
+			taskFile = new File(trans.workDir, "ctl" + i + ".task");
+			try {
+				BufferedWriter bw = new BufferedWriter(new FileWriter(taskFile));
+				bw.write(formula);
+				bw.close();
+				i++;
+				System.out.println("Task file " + taskFile + " successfully written.");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}	
 		
 		
 	}
@@ -291,27 +327,29 @@ public class BPATransformer {
 		
 		Place outPlace = new Place();
 		if (event.hasTrivialMultiplicity()) {
-			outPlace.setLabel("p_"+eventLabel);
+			// case 1: no multireceive net, directly connected
+			outPlace.setLabel(NORMAL_PLACE + eventLabel);
 		} else {
-			outPlace.setLabel("p''_"+eventLabel);
+			// case 2 : connect to in-place of multireceive net 
+			outPlace.setLabel(INTERMEDIARY_PLACE + eventLabel);
 		}
 		for (SendingEvent predecessor : pre) {
 			Place inPlace = new Place();
 			Transition tmpTransition = new Transition("t_"+eventLabel);
 			List<ReceivingEvent> predecessorPost = predecessor.getPostset();
 			if (predecessorPost != null && predecessorPost.size() > 1) {
-				inPlace.setLabel("p''_"+predecessor.getLabel()+"_"+eventLabel);
+				inPlace.setLabel(INTERMEDIARY_PLACE + predecessor.getLabel()+"_"+eventLabel);
 			} else {	
 				if (!predecessor.hasTrivialMultiplicity()) {
-					inPlace.setLabel("p''_"+predecessor.getLabel());
+					inPlace.setLabel(INTERMEDIARY_PLACE + predecessor.getLabel());
 				} else {
-					inPlace.setLabel("p_"+predecessor.getLabel());
+					inPlace.setLabel(NORMAL_PLACE + predecessor.getLabel());
 				}
 			}
 			collector.addFlow(inPlace, tmpTransition);
 			collector.addFlow(tmpTransition, outPlace);
 		}
-	
+		System.out.println(" --- place "+collector.getPlaces());
 		
  		return collector;
 	}
@@ -327,22 +365,22 @@ public class BPATransformer {
 		List<SendingEvent> pre = event.getPreset();
 		String eventLabel = event.getLabel();
 		
-		Place outPlace = new Place("p_"+eventLabel); 
+		Place outPlace = new Place(NORMAL_PLACE + eventLabel); 
 		multireceiver.addPlace(outPlace);
 		Place inPlace = new Place();
 		if (pre.size() == 1) {
 			SendingEvent predecessor = pre.get(0);
 			if (predecessor.getPostset().size() == 1) {
 				if (predecessor.hasTrivialMultiplicity()) {
-					inPlace.setLabel("p_"+predecessor.getLabel());
+					inPlace.setLabel(NORMAL_PLACE + predecessor.getLabel());
 				} else {
-					inPlace.setLabel("p_"+predecessor.getLabel()+"_"+eventLabel);
+					inPlace.setLabel(NORMAL_PLACE + predecessor.getLabel()+"_"+eventLabel);
 				}
 			} else {
-				inPlace.setLabel("p''_"+eventLabel);
+				inPlace.setLabel(INTERMEDIARY_PLACE+eventLabel);
 			}
 		} else if (pre.size() > 1) { 
-			inPlace.setLabel("p''_"+eventLabel);
+			inPlace.setLabel(INTERMEDIARY_PLACE+eventLabel);
 		}
 		multireceiver.addPlace(inPlace);
 		
@@ -357,7 +395,7 @@ public class BPATransformer {
 			inFlow.setTag(new Integer(mult));
 			//inFlow.setName(new Integer(mult).toString());
 		}
-		
+		System.out.println(" -- places: " + multireceiver.getPlaces());
 		return multireceiver;
 	}
 	
@@ -374,9 +412,9 @@ public class BPATransformer {
 		Place inPlace = new Place();
 		String eventLabel = event.getLabel();
 		if (event.hasTrivialMultiplicity()) {
-			inPlace.setLabel("p_"+eventLabel);
+			inPlace.setLabel(NORMAL_PLACE+eventLabel);
 		} else {
-			inPlace.setLabel("p''_"+eventLabel);
+			inPlace.setLabel(INTERMEDIARY_PLACE+eventLabel);
 		}
 		splitter.addPlace(inPlace);
 		Transition t = new Transition("t_"+eventLabel);
@@ -387,15 +425,16 @@ public class BPATransformer {
 			tmpPlace = new Place();
 			if (successor.getPreset().size() == 1) {
 				if (successor.hasTrivialMultiplicity()) {
-					tmpPlace.setLabel("p_"+successor.getLabel());
+					tmpPlace.setLabel(NORMAL_PLACE +successor.getLabel());
 				} else {
-					tmpPlace.setLabel("p''_"+successor.getLabel());
+					tmpPlace.setLabel(INTERMEDIARY_PLACE+successor.getLabel());
 				}
 			} else {
-				tmpPlace.setLabel("p''_"+eventLabel+"_"+successor.getLabel());
+				tmpPlace.setLabel(INTERMEDIARY_PLACE+eventLabel+"_"+successor.getLabel());
 			}
 			splitter.addFlow(t, tmpPlace);
 		}
+		System.out.println(" -- places: " + splitter.getPlaces());
 		return splitter;
 	}
 	
@@ -408,7 +447,7 @@ public class BPATransformer {
 		PetriNet multicaster = new PetriNet();
 		List<ReceivingEvent> post = event.getPostset();
 		
-		Place inPlace = new Place("p_"+event.getLabel());
+		Place inPlace = new Place(NORMAL_PLACE +event.getLabel());
 		multicaster.addPlace(inPlace );
 		Place outPlace = new Place();
 		// set the label of the output place (see Eid-Sabbagh+13b)
@@ -416,15 +455,15 @@ public class BPATransformer {
 			ReceivingEvent successor = post.get(0);
 			if (successor.getPreset().size() == 1) {
 				if (successor.hasTrivialMultiplicity()) {
-					outPlace.setLabel("p_"+successor.getLabel());
+					outPlace.setLabel(NORMAL_PLACE +successor.getLabel());
 				} else {
-					outPlace.setLabel("p_"+event.getLabel()+"_"+successor.getLabel());
+					outPlace.setLabel(NORMAL_PLACE +event.getLabel()+"_"+successor.getLabel());
 				}
 			} else if (successor.getPreset().size() > 1) { // collector net for successor
-				outPlace.setLabel("p''_"+event.getLabel());
+				outPlace.setLabel(INTERMEDIARY_PLACE+event.getLabel());
 			}
 		} else if (post.size() > 1) { // splitter net was also created
-			outPlace.setLabel("p''_"+event.getLabel());
+			outPlace.setLabel(INTERMEDIARY_PLACE+event.getLabel());
 		}
 		multicaster.addPlace(outPlace);
 		
@@ -439,6 +478,7 @@ public class BPATransformer {
 			outFlow.setTag(new Integer(mult));
 			//outFlow.setName("2");
 		}
+		System.out.println(" -- places: " + multicaster.getPlaces());
 		return multicaster;
 	}
 
