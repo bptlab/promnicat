@@ -157,6 +157,8 @@ public class BPAImporter {
 				}
 			}
 			bpa = new BPA();
+			bpa.setName(diag.getProperty("name"));
+			bpa.setOrganisation(diag.getProperty("author"));
 			bpa.setProcesslist(new ArrayList<BusinessProcess>(processEventMapper.keySet()));
 			
 		} catch (FileNotFoundException e1) {

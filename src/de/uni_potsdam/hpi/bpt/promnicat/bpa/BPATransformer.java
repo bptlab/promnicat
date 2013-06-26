@@ -47,14 +47,12 @@ public class BPATransformer {
 	private final String NORMAL_PLACE = "p_"; 
 	
 	private List<String> formulae = new ArrayList<String>();
-	private final File workDir;
-	
+
 	
 	/**
 	 * TODO: Should I take a strategy to allow different types of transformations?
 	 */
 	public BPATransformer() {
-		workDir = new File(System.getenv("userprofile") + File.separator + "signavio");
 	}
 	
 	/**
@@ -221,57 +219,12 @@ public class BPATransformer {
 	}
 	
 	/**
-	 * @param args
-	 */
-	@SuppressWarnings("serial")
-	/**
 	 * Testing
 	 * @param args
+	 * @deprecated Use BPAAnalyzer instead!
 	 */
 	public static void main(String[] args) {
-		// TODO: get reference to instance of this? Does it make sense?
-		BPATransformer trans = new BPATransformer();
-
-		// read json file
-		File jsonPath =  new File(trans.workDir,"bpa-test.xml");
-		BPA bpa = BPAImporter.fromXML(jsonPath);
-		
-		// transform it
-//		BPA testBPA = BPAExamples.complexBPA();
-//		NetSystem pns = trans.transform(testBPA);
-		NetSystem pns = trans.transform(bpa);
-		pns.setName("Testnetz");
-		String xmlString = InscriptionSerializer.serializeNet(pns);
-		
-		// serialize and write to file
-		try {
-			File file = new File(trans.workDir, "test.pnml");
-			BufferedWriter bw = new BufferedWriter(new FileWriter(file));
-			bw.write(xmlString);
-			bw.close();
-			System.out.println("Transformation complete, written to: " + file);
-			System.out.println("Import with Renew (File-Import-XML-PNML) and choose Layout-Automatic Layout");
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
-		
-		// writing task files to be checked by lola
-		int i = 1;
-		File taskFile; 
-		for (String formula : trans.formulae) {
-			taskFile = new File(trans.workDir, "ctl" + i + ".task");
-			try {
-				BufferedWriter bw = new BufferedWriter(new FileWriter(taskFile));
-				bw.write(formula);
-				bw.close();
-				i++;
-				System.out.println("Task file " + taskFile + " successfully written.");
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}	
-		
-		
+		// no longer used!
 	}
 
 	/**
@@ -480,6 +433,10 @@ public class BPATransformer {
 		}
 		System.out.println(" -- places: " + multicaster.getPlaces());
 		return multicaster;
+	}
+
+	protected List<String> getFormulae() {
+		return formulae;
 	}
 
 	//TODO: Naming of places and transitions
