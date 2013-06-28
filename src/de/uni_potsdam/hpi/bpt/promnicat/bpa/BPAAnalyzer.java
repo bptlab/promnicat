@@ -48,15 +48,13 @@ public class BPAAnalyzer {
 			// transform it
 			BPATransformer trans = new BPATransformer();
 			NetSystem pns = trans.transform(bpa);
-			System.out.println("BPA Name: " + bpa.getName());
-			
-			pns.setName("Testnetz"); //bpa.getName());
+			pns.setName(bpa.getName() != null ? bpa.getName() : "Testnetz");
 			// serialize and write to file
 			String pnmlNetSerialization = InscriptionSerializer
 					.serializeNet(pns);
 			File pnmlOutput = writePNML(pnmlNetSerialization);
 			writeTaskFiles(trans.getFormulae());
-			//pnmlToNet(pnmlOutput);
+			pnmlToNet(pnmlOutput);
 
 		}
 
