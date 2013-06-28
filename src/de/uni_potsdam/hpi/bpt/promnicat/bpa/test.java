@@ -1,0 +1,84 @@
+/**
+ * 
+ */
+package de.uni_potsdam.hpi.bpt.promnicat.bpa;
+import java.io.IOException;
+import java.util.logging.Logger;
+
+import de.uni_potsdam.hpi.bpt.promnicat.analysisModules.ConnectedEPC;
+import de.uni_potsdam.hpi.bpt.promnicat.bpa.Event.EventType;
+import java.util.*;
+/**
+ * @author rami.eidsabbagh
+ *
+ */
+public class test {
+	
+	private final static Logger logger = Logger.getLogger(test.class.getName());
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		
+		
+		StartLola lolaStart = new StartLola();
+		try {
+			List<String> list = lolaStart.runLola("");
+			System.out.println(list);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		/*Relation relation = Relation.getInstance();
+		ArrayList<StartEvent> triggse3 = new ArrayList<StartEvent>();
+		int[] mult = new int[]{1,2,3,4};
+		final  StartEvent e0 = new StartEvent(0, 2, "p", new int[]{1});
+		final SendingEvent e1 = new SendingEvent(1,2,"q", new int[]{1,2} );
+		
+		final  StartEvent e2 = new StartEvent(3, 4, "r",new int[]{3,4} );
+		final SendingEvent e3 = new SendingEvent(5,4,"s", new int[]{1});
+		final SendingEvent e4 = new SendingEvent(6, 4, "t", new int[]{1});
+
+		final  StartEvent e5 = new StartEvent(7, 9, "u", new int[]{1});
+		final  StartEvent e6 = new StartEvent(8,9,"v", new int[]{1} );
+		final SendingEvent e9 = new SendingEvent(13,9,"z", new int[]{1} );
+		
+		final  StartEvent e7 = new StartEvent(10, 12, "x", new int[]{1});
+		final SendingEvent e8 = new SendingEvent(11,12,"y", new int[]{1} );
+		
+		triggse3.add(e0);
+		triggse3.add(e5);
+		triggse3.add(e2);
+		relation.addTrigger(e3, triggse3);
+		ArrayList<StartEvent> results = relation.getTriggered(e3);
+		logger.info("this is in results"+results.size());
+		logger.info("This is the arraylist: ");
+		
+		ListIterator<StartEvent> litr = results.listIterator();
+	    while (litr.hasNext()) {
+	    //String	label = litr.next().getLabel();
+	     //logger.info("Even Labels is: "+label);
+	     logger.info("Direkt output: "+litr.next().getLabel());
+	    }
+		
+		
+		// TODO Auto-generated method stub
+		StartEvent start = new StartEvent(15, 26, "Startevent", mult);
+		if(StartEvent.EventType.STARTEVENT.equals(start.getType())){
+			logger.info("the startevent :"+start.getLabel());
+			logger.info("event id: "+start.getID());
+			logger.info("event id: "+start.getType());
+			logger.info("All kinds of getters: "+start.getOwner());
+			logger.info("All kinds of getters II: "+start.getClass());
+			logger.info("All kinds of getters III: "+start.getMultiplicity());
+			logger.info("All kinds of getters III: "+start.hasTrivialMultiplicity());
+			start.setLabel("newstartlablel");
+			logger.info("new label "+start.getLabel());
+		} else{
+			logger.info("It did not work "+start.getType());
+			logger.info("It did not work:"+start.getLabel());
+		}
+	*/
+	}
+}
