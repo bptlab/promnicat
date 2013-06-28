@@ -46,8 +46,9 @@ public class BPATransformer {
 	private final String INTERMEDIARY_PLACE = "q_"; // replaces p''
 	private final String NORMAL_PLACE = "p_"; 
 	
-	private List<String> formulae = new ArrayList<String>();
-
+	private List<String> deadProcessFormulae = new ArrayList<String>();
+	private List<String> livelockFormulae = new ArrayList<String>();
+	private StringBuilder terminatingFormula = new StringBuilder("FORMULA ");
 	
 	/**
 	 * TODO: Should I take a strategy to allow different types of transformations?
@@ -61,26 +62,37 @@ public class BPATransformer {
 	 * @return
 	 */
 	public NetSystem transform(BPA bpa) {
-		System.out.println("Starting transformation of BPA " + bpa);
+		System.out.println("Starting transformation of BPA " + bpa.getName());
 		List<BusinessProcess> processes = bpa.getAllProcesses();
 		Map<BusinessProcess,PetriNet> resultingNets = new HashMap<BusinessProcess,PetriNet>();
 		Map<Event, List<PetriNet>> intermediaryNets = new HashMap<Event, List<PetriNet>>();
 		NetSystem bpaNet = new NetSystem();
 		
-		// process nets
 		for (BusinessProcess process : processes) {
-			System.out.println(" - Transforming process " + process);
-			resultingNets.put(process, transform(process));
+			System.out.println("|- Transforming process " + process.getName());
+			PetriNet transformedProcess = transform(process);
+			resultingNets.put(process, transformedProcess);
+			for (Place p : transformedProcess.getPlaces()) {
+				terminatingFormula.append(p.getLabel() + 
+						(transformedProcess.getDirectSuccessors(p).isEmpty() ? " > " : " = ") +
+						"0 AND ");
+			}
 		}
+
 		// intermediary nets
 		List<Event> allEvents = bpa.getEvents();
 		for (Event event : allEvents) {
 			List<PetriNet> transformed = transform(event);
 			if (!transformed.isEmpty()) {
-				System.out.println(" - Transforming event " + event + " into intermediary net");
+				System.out.println("|- Transforming event " + event.getLabel() + 
+						" into " + transformed.size() + " intermediary net");
 				intermediaryNets.put(event, transformed);
 			}
 		}
+		int end = terminatingFormula.length();
+		terminatingFormula.delete(end  - 4, end);
+		System.out.println("|= Formula for terminating run: "+terminatingFormula);
+
 		// now compose them 
 		Collection<PetriNet> allNets = new ArrayList<PetriNet>(); 
 		allNets.addAll(resultingNets.values());
@@ -118,7 +130,7 @@ public class BPATransformer {
 				processNet.addEdge(t,p);
 			} else if (ev instanceof ReceivingEvent) {
 				processNet.addEdge(p, t);
-				if (!first) formula.append(p.getLabel() + " = 0 AND ");
+				//if (!first) formula.append(p.getLabel() + " = 0 AND ");
 			}
 
 			// handle start event, no pPrime exists for it
@@ -126,7 +138,7 @@ public class BPATransformer {
 				first = false;
 				if (ev instanceof StartEvent) {
 					// build CTL formula
-					formula.append(p.getLabel() + " > 0 OR ( EXPATH EVENTUALLY ");
+					formula.append(p.getLabel() + " > 0 ");
 					if (((StartEvent) ev).isInitialPlace()) { 
 						// put token on initial place 
 						processNet.getMarking().put(p,1);
@@ -141,14 +153,12 @@ public class BPATransformer {
 				pPrime = new Place(INTERNAL_PLACE + ev.getLabel());
 				processNet.addPlace(pPrime);
 				processNet.addEdge(t, pPrime);
-				formula.append(pPrime.getLabel() + " = 0 AND ");
 			} else {
-				// close CTL formula
-				formula.append(p.getLabel() + " > 0 )");
+				// TODO: Last element, necessary for lazy termination
 			}
 		}
-		System.out.println(" -- CTL formula : " + formula);
-		formulae.add(formula.toString());
+		System.out.println(" -- State predicate to check dead process: " + formula);
+		deadProcessFormulae.add(formula.toString());
 		return processNet;
 	}
 
@@ -225,6 +235,8 @@ public class BPATransformer {
 	 */
 	public static void main(String[] args) {
 		// no longer used!
+		BPA bpa = BPAExamples.complexBPA();
+		new BPATransformer().transform(bpa);
 	}
 
 	/**
@@ -277,24 +289,27 @@ public class BPATransformer {
 		PetriNet collector = new PetriNet();
 		List<SendingEvent> pre = event.getPreset();
 		String eventLabel = event.getLabel();
-		
+		String placeName = null;
 		Place outPlace = new Place();
 		if (event.hasTrivialMultiplicity()) {
 			// case 1: no multireceive net, directly connected
 			outPlace.setLabel(NORMAL_PLACE + eventLabel);
 		} else {
-			// case 2 : connect to in-place of multireceive net 
-			outPlace.setLabel(INTERMEDIARY_PLACE + eventLabel);
+			// case 2 : connect to in-place of multireceive net
+			placeName = INTERMEDIARY_PLACE + eventLabel;
+			outPlace.setLabel(placeName);
 		}
 		for (SendingEvent predecessor : pre) {
 			Place inPlace = new Place();
 			Transition tmpTransition = new Transition("t_"+eventLabel);
 			List<ReceivingEvent> predecessorPost = predecessor.getPostset();
 			if (predecessorPost != null && predecessorPost.size() > 1) {
-				inPlace.setLabel(INTERMEDIARY_PLACE + predecessor.getLabel()+"_"+eventLabel);
+				placeName = INTERMEDIARY_PLACE + predecessor.getLabel()+"_"+eventLabel;
+				inPlace.setLabel(placeName);
 			} else {	
 				if (!predecessor.hasTrivialMultiplicity()) {
-					inPlace.setLabel(INTERMEDIARY_PLACE + predecessor.getLabel());
+					placeName = INTERMEDIARY_PLACE + predecessor.getLabel();
+					inPlace.setLabel(placeName);
 				} else {
 					inPlace.setLabel(NORMAL_PLACE + predecessor.getLabel());
 				}
@@ -303,7 +318,7 @@ public class BPATransformer {
 			collector.addFlow(tmpTransition, outPlace);
 		}
 		System.out.println(" --- place "+collector.getPlaces());
-		
+		if (placeName != null) terminatingFormula.append(placeName + " = 0 AND ");
  		return collector;
 	}
 
@@ -321,20 +336,25 @@ public class BPATransformer {
 		Place outPlace = new Place(NORMAL_PLACE + eventLabel); 
 		multireceiver.addPlace(outPlace);
 		Place inPlace = new Place();
+		String placeName = null;
 		if (pre.size() == 1) {
 			SendingEvent predecessor = pre.get(0);
 			if (predecessor.getPostset().size() == 1) {
 				if (predecessor.hasTrivialMultiplicity()) {
 					inPlace.setLabel(NORMAL_PLACE + predecessor.getLabel());
 				} else {
-					inPlace.setLabel(NORMAL_PLACE + predecessor.getLabel()+"_"+eventLabel);
+					placeName = NORMAL_PLACE + predecessor.getLabel()+"_"+eventLabel;
+					inPlace.setLabel(placeName);
 				}
 			} else {
-				inPlace.setLabel(INTERMEDIARY_PLACE+eventLabel);
+				placeName = INTERMEDIARY_PLACE+eventLabel;
+				inPlace.setLabel(placeName);
 			}
-		} else if (pre.size() > 1) { 
-			inPlace.setLabel(INTERMEDIARY_PLACE+eventLabel);
+		} else if (pre.size() > 1) {
+			placeName = INTERMEDIARY_PLACE+eventLabel;
+			inPlace.setLabel(placeName);
 		}
+		if (placeName != null) terminatingFormula.append(placeName + " = 0 AND ");
 		multireceiver.addPlace(inPlace);
 		
 		// now create and connect transitions
@@ -374,20 +394,23 @@ public class BPATransformer {
 		splitter.addTransition(t);
 		splitter.addFlow(inPlace, t);
 		Place tmpPlace;
+		String placeName = null;
 		for (ReceivingEvent successor : post) {
 			tmpPlace = new Place();
 			if (successor.getPreset().size() == 1) {
 				if (successor.hasTrivialMultiplicity()) {
 					tmpPlace.setLabel(NORMAL_PLACE +successor.getLabel());
 				} else {
-					tmpPlace.setLabel(INTERMEDIARY_PLACE+successor.getLabel());
+					placeName = INTERMEDIARY_PLACE+successor.getLabel();
+					tmpPlace.setLabel(placeName);
 				}
 			} else {
-				tmpPlace.setLabel(INTERMEDIARY_PLACE+eventLabel+"_"+successor.getLabel());
+				placeName = INTERMEDIARY_PLACE+eventLabel+"_"+successor.getLabel();
+				tmpPlace.setLabel(placeName);
 			}
 			splitter.addFlow(t, tmpPlace);
 		}
-		System.out.println(" -- places: " + splitter.getPlaces());
+		if (placeName != null) terminatingFormula.append(placeName + " = 0 AND ");
 		return splitter;
 	}
 	
@@ -404,20 +427,25 @@ public class BPATransformer {
 		multicaster.addPlace(inPlace );
 		Place outPlace = new Place();
 		// set the label of the output place (see Eid-Sabbagh+13b)
+		String placeName = null;
 		if (post.size() == 1) {
 			ReceivingEvent successor = post.get(0);
 			if (successor.getPreset().size() == 1) {
 				if (successor.hasTrivialMultiplicity()) {
 					outPlace.setLabel(NORMAL_PLACE +successor.getLabel());
 				} else {
-					outPlace.setLabel(NORMAL_PLACE +event.getLabel()+"_"+successor.getLabel());
+					placeName = NORMAL_PLACE +event.getLabel()+"_"+successor.getLabel();
+					outPlace.setLabel(placeName);
 				}
 			} else if (successor.getPreset().size() > 1) { // collector net for successor
-				outPlace.setLabel(INTERMEDIARY_PLACE+event.getLabel());
+				placeName = INTERMEDIARY_PLACE+event.getLabel();
+				outPlace.setLabel(placeName);
 			}
 		} else if (post.size() > 1) { // splitter net was also created
-			outPlace.setLabel(INTERMEDIARY_PLACE+event.getLabel());
+			placeName = INTERMEDIARY_PLACE+event.getLabel();
+			outPlace.setLabel(placeName);
 		}
+		if (placeName != null) terminatingFormula.append(placeName + " = 0 AND "); 
 		multicaster.addPlace(outPlace);
 		
 		// now create and connect transitions
@@ -436,7 +464,7 @@ public class BPATransformer {
 	}
 
 	protected List<String> getFormulae() {
-		return formulae;
+		return deadProcessFormulae;
 	}
 
 	//TODO: Naming of places and transitions

@@ -35,11 +35,11 @@ public class BPAExamples {
 		final StartEvent e0 = new StartEvent(2, "p", new int[]{1});
 		final SendingEvent e1 = new EndEvent(2,"q", new int[]{1,2} );
 		
-		final ReceivingEvent e2 = new IntermediateCatchingEvent(4, "r",new int[]{3,4} );
+		final ReceivingEvent e2 = new StartEvent(4, "r",new int[]{3,4} );
 		final SendingEvent e3 = new IntermediateThrowingEvent(4,"s", new int[]{1});
 		final SendingEvent e4 = new EndEvent(4, "t", new int[]{1});
 
-		final ReceivingEvent e5 = new IntermediateCatchingEvent(9, "u", new int[]{1});
+		final ReceivingEvent e5 = new StartEvent(9, "u", new int[]{1});
 		final ReceivingEvent e6 = new IntermediateCatchingEvent(9,"v", new int[]{1} );
 		final SendingEvent e9 = new IntermediateThrowingEvent(9,"z", new int[]{1} );
 		
