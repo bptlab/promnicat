@@ -520,8 +520,18 @@ public class BPATransformer {
 		return multicaster;
 	}
 
-	protected List<String> getFormulae() {
+	protected List<String> getDeadProcessFormulae() {
 		return deadProcessFormulae;
+	}
+
+	protected List<String> getLivelockFormulae() {
+		return livelockFormulae;
+	}
+
+	protected List<String> getTerminatingFormula() {
+		List<String> result = new ArrayList<String>();
+		result.add(terminatingFormula.toString()); 
+		return result;
 	}
 
 	// TODO: Naming of places and transitions

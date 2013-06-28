@@ -53,9 +53,10 @@ public class BPAAnalyzer {
 			String pnmlNetSerialization = InscriptionSerializer
 					.serializeNet(pns);
 			File pnmlOutput = writePNML(pnmlNetSerialization);
-			writeTaskFiles(trans.getFormulae());
+			writeTaskFiles(trans.getDeadProcessFormulae(),"deadProcess");
+			writeTaskFiles(trans.getLivelockFormulae(), "liveTransitions");
+			writeTaskFiles(trans.getTerminatingFormula(), "terminatingRun");
 			pnmlToNet(pnmlOutput);
-
 		}
 
 	}
@@ -82,12 +83,12 @@ public class BPAAnalyzer {
 		}
 	}
 
-	private static void writeTaskFiles(List<String> formulae) {
+	private static void writeTaskFiles(List<String> formulae, String type) {
 		// writing task files to be checked by lola
 		int i = 1;
 		File taskFile;
 		for (String formula : formulae) {
-			taskFile = new File(workDir, "ctl" + i + ".task");
+			taskFile = new File(workDir, type + i + ".task");
 			try {
 				BufferedWriter bw = new BufferedWriter(new FileWriter(taskFile));
 				bw.write(formula);
