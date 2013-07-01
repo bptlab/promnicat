@@ -3,10 +3,13 @@ package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
+import java.util.Properties;
 
 import org.jbpt.petri.NetSystem;
 
@@ -14,7 +17,9 @@ public class BPAAnalyzer {
 
 	private static final File workDir = new File(System.getenv("userprofile")
 			+ File.separator + ".bpa");
-	private static final String renewPath = "c:/mycyg/home/Marcin.Hewelt/aose12/workspace/Renew/dist/";
+	// TODO: introduce properties
+	private static String renewPath;
+	private static String lolaPath;
 
 	/**
 	 * I glue all the stuff together: Import the json, transform to pnml and
@@ -24,6 +29,7 @@ public class BPAAnalyzer {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		init();
 		File jsonInput;
 		Boolean found = false;
 		if (args.length > 0 && args[0] != null) { // filename provided
@@ -61,8 +67,22 @@ public class BPAAnalyzer {
 
 	}
 
+	private static void init() {
+		Properties props = new Properties();
+		try {
+			props.load(new FileReader(new File(workDir,".properties")));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		renewPath = props.getProperty("renew.path");
+		lolaPath = props.getProperty("lola.path");
+	}
+
 	private static void pnmlToNet(File pnmlOutput) {
 		// import/export with renew
+		System.out.println("Transforming Petri net");
 		Runtime rt = Runtime.getRuntime();
 		String importCmd = new String("java -jar  " + renewPath + "loader.jar import " + pnmlOutput);
 		String exportCmd = new String("java -jar  " + renewPath + "loader.jar ex Lola " + workDir + "/bpa-test.rnw");
