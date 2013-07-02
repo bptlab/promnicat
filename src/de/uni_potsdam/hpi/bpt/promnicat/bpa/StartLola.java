@@ -7,30 +7,50 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.lang.ProcessBuilder;
 /**
  * @author rami.eidsabbagh
  *
  */
 public class StartLola {
-	String path ="C:\\renew-2.3\\plugins\\lola-2.2-SE_0.7.1\\lib\\lola.exe";
-	List<String> myList;
-	public List<String> runLola(String param) throws IOException{
-		Process process = new ProcessBuilder(path).start();
-		//Process process = new ProcessBuilder(path,param).start();
+	String path ="C:\\renew-2.3\\plugins\\lola-2.2-SE_0.7.1\\lib\\lola-model-checking.exe";
+	String myList;
+	
+	
+	public String runLola(String param, String param2, String param3) throws Exception{
+		//Process process = new ProcessBuilder(path).start();
+		ProcessBuilder builder = new ProcessBuilder(path,param,param2,param3);
+		 Map<String, String> environment = builder.environment();
+		 Process process = builder.start();
 		//InputStream is = process.getInputStream();
-		//InputStreamReader isr = new InputStreamReader(is);
-		//BufferedReader br = new BufferedReader(isr);
-		//String line;
+		String output;
+		output = loadStream(process.getInputStream());
+		
+			
+		
+        String error  = loadStream(process.getErrorStream());
+        int rc = process.waitFor();
+        System.out.println("Process ended with rc=" + rc);
+        System.out.println("\nStandard Output:\n");
+        System.out.println(output);
+        System.out.println("\nStandard Error:\n");
+        System.out.println(error);
+		//		InputStreamReader isr = new InputStreamReader(is);
 
-		//System.out.printf("Output of running %s is:", Arrays.toString(args));
-
-		//while ((line = br.readLine()) != null) {
-		 // System.out.println(line);
-		//}
-		return myList;
+		return output;
 	}
 	
+	private static String loadStream(InputStream s) throws Exception
+    {
+        BufferedReader br = new BufferedReader(new InputStreamReader(s));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while((line=br.readLine()) != null)
+            sb.append(line).append("\n");
+        return sb.toString();
+    }
 	
 }

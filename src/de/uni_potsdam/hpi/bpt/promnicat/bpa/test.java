@@ -2,6 +2,7 @@
  * 
  */
 package de.uni_potsdam.hpi.bpt.promnicat.bpa;
+import java.io.File;
 import java.io.IOException;
 import java.util.logging.Logger;
 
@@ -18,13 +19,19 @@ public class test {
 	/**
 	 * @param args
 	 */
-	public static void main(String[] args) {
-		
-		
+	private static final File workDir = new File(System.getenv("userprofile")
+			+ File.separator + ".bpa");
+	public static void main(String[] args) throws Exception {
+		String param = workDir+File.separator+"bpa-test.net";
+		String param2 = "-a";
+//		String param3 = workDir+File.separator+"deadProcess1.task";
+		String param3 = workDir+File.separator+"terminatingRun1.task";
+		//String param2 = "";
+		System.out.println(param+" param 2 "+param2+" param3: "+param3);
 		StartLola lolaStart = new StartLola();
 		try {
-			List<String> list = lolaStart.runLola("");
-			System.out.println(list);
+			String list = lolaStart.runLola(param,param2,param3);
+			System.out.println("This is the return of start lola: "+list);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
