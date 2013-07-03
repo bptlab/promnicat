@@ -17,6 +17,7 @@ public class BPAAnalyzer {
 
 	private static final File workDir = new File(System.getenv("userprofile")
 			+ File.separator + ".bpa");
+	
 	// TODO: introduce properties
 	private static String renewPath;
 	private static String lolaPath;
@@ -32,6 +33,7 @@ public class BPAAnalyzer {
 		init();
 		File jsonInput;
 		Boolean found = false;
+		System.out.println(workDir);
 		if (args.length > 0 && args[0] != null) { // filename provided
 			jsonInput = new File(args[0]);
 			if (jsonInput.exists()) {
@@ -42,7 +44,7 @@ public class BPAAnalyzer {
 					found = true;
 			}
 		} else {
-			jsonInput = new File(workDir, "bpa-test.xml");
+			jsonInput = new File(workDir, "bpa-test-deadlock-III.xml");
 			if (jsonInput.exists())
 				found = true;
 		}
@@ -84,8 +86,9 @@ public class BPAAnalyzer {
 		// import/export with renew
 		System.out.println("Transforming Petri net");
 		Runtime rt = Runtime.getRuntime();
+		System.out.println(pnmlOutput);
 		String importCmd = new String("java -jar  " + renewPath + "loader.jar import " + pnmlOutput);
-		String exportCmd = new String("java -jar  " + renewPath + "loader.jar ex Lola " + workDir + "/bpa-test.rnw");
+		String exportCmd = new String("java -jar  " + renewPath + "loader.jar ex Lola " + workDir + "/bpa-test-deadlock-III.rnw");
 		try {
 			Process renewImportPrc = rt.exec(importCmd);
 			BufferedReader renewOutput = new BufferedReader(new InputStreamReader(renewImportPrc.getInputStream()));
@@ -105,10 +108,35 @@ public class BPAAnalyzer {
 
 	private static void writeTaskFiles(List<String> formulae, String type) {
 		// writing task files to be checked by lola
+		
+		File fileLiveTransition = new File(workDir +File.separator + "LiveTransition");
+		boolean exists = fileLiveTransition.exists();
+		if (!exists) {
+			fileLiveTransition.mkdir();
+		} else {
+			// It returns true if File or directory exists
+			System.out
+					.println("the file or directory you are searching does exist : "
+							+ exists);
+		}
+		File fileDeadProcess = new File(workDir + File.separator+"DeadProcess");
+		exists = fileDeadProcess.exists();
+		if (!exists) {
+			fileDeadProcess.mkdir();
+		} else { // It returns true if File or directory exists
+			System.out.println("the file or directory you are searching does exist : "
+							+ exists);
+		}
 		int i = 1;
 		File taskFile;
-		for (String formula : formulae) {
-			taskFile = new File(workDir, type + i + ".task");
+		 for (String formula : formulae) {
+			if(type.equals("liveTransitions")) {
+				taskFile = new File(fileLiveTransition.getPath(), type + i + ".task");
+			} else if(type.equals("deadProcess")){
+				taskFile = new File(fileDeadProcess.getPath(), type + i + ".task");
+			} else {
+				taskFile = new File(workDir, type + i + ".task");
+			}
 			try {
 				BufferedWriter bw = new BufferedWriter(new FileWriter(taskFile));
 				bw.write(formula);
@@ -123,7 +151,7 @@ public class BPAAnalyzer {
 	}
 
 	private static File writePNML(String pnmlNetSerialization) {
-		File outputFile = new File(workDir, "bpa-test.pnml"); // TODO: use real
+		File outputFile = new File(workDir, "bpa-test-deadlock-III.pnml"); // TODO: use real
 																// names
 		try {
 			BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));

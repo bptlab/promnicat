@@ -42,7 +42,8 @@ public class BPAImporter {
 	public static void main(String[] args) {
 
 		Path jsonPath = Paths.get(System.getenv("userprofile") + File.separator
-				+ "test.xml");
+				+ "bpa-test.signavio.xml");
+		System.out.println(jsonPath);
 		fromXML(jsonPath.toFile());
 	}
 

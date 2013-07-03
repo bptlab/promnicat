@@ -16,7 +16,8 @@ import java.lang.ProcessBuilder;
  *
  */
 public class StartLola {
-	String path ="C:\\renew-2.3\\plugins\\lola-2.2-SE_0.7.1\\lib\\lola-model-checking.exe";
+	//String path ="C:\\renew-2.3\\plugins\\lola-2.2-SE_0.7.1\\lib\\lola-model-checking.exe";
+	String path ="C:\\renew-2.3\\plugins\\lola-2.2-SE_0.7.1\\lib\\lola-dead-transition.exe";
 	String myList;
 	
 	

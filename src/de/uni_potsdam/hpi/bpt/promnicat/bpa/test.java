@@ -22,20 +22,27 @@ public class test {
 	private static final File workDir = new File(System.getenv("userprofile")
 			+ File.separator + ".bpa");
 	public static void main(String[] args) throws Exception {
-		String param = workDir+File.separator+"bpa-test.net";
-		String param2 = "-a";
-//		String param3 = workDir+File.separator+"deadProcess1.task";
+		String param = workDir+File.separator+"bpa-test-deadlock-II.net";
+		CorrectnessChecker checker = new CorrectnessChecker();
+		ArrayList<String> resultss = checker.checkDeadlock(param);
+		System.out.println(resultss);
+		
 		String param3 = workDir+File.separator+"terminatingRun1.task";
-		//String param2 = "";
-		System.out.println(param+" param 2 "+param2+" param3: "+param3);
-		StartLola lolaStart = new StartLola();
-		try {
-			String list = lolaStart.runLola(param,param2,param3);
-			System.out.println("This is the return of start lola: "+list);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		ArrayList<String> results = checker.checkModel(param, param3);
+		System.out.println(results);
+//		String param2 = "-a";
+////		String param3 = workDir+File.separator+"deadProcess1.task";
+//		String param3 = workDir+File.separator+"liveTransitions1.task";
+//		//String param2 = "";
+//		System.out.println(param+" param 2 "+param2+" param3: "+param3);
+//		StartLola lolaStart = new StartLola();
+//		try {
+//			String list = lolaStart.runLola(param,param2,param3);
+//			System.out.println("This is the return of start lola: "+list);
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 		
 		/*Relation relation = Relation.getInstance();
 		ArrayList<StartEvent> triggse3 = new ArrayList<StartEvent>();
