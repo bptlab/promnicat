@@ -28,6 +28,30 @@ public class test {
 		System.out.println(resultss);
 		
 		String param3 = workDir+File.separator+"terminatingRun1.task";
+		ArrayList<String> results = new ArrayList<String>();
+		ArrayList<String> deadProResult = new ArrayList<String>();
+		 ArrayList<String> liveTransResults;
+		String taskfile = "";
+		File[] files = workDir.listFiles();
+		for (File file : files) {
+			if(file.isDirectory()&& file.getName().contains("DeadProcess")){
+				File[] deadProcessTasks = file.listFiles();
+				for (File file2 : deadProcessTasks) {
+				 taskfile = file2.getPath();
+				 results = checker.checkModel(param, taskfile);
+				 deadProResult.add(results.get(2));
+				}
+			}
+			if(file.isDirectory()&& file.getName().contains("LiveTransition")){
+				File[] liveTransition = file.listFiles();
+				for (File file2 : liveTransition) {
+				 taskfile = file2.getPath();
+				 results = checker.checkModel(param, taskfile);
+				
+				liveTransResults.add(results.get(2));
+				}
+			}
+		}
 		ArrayList<String> results = checker.checkModel(param, param3);
 		System.out.println(results);
 //		String param2 = "-a";
