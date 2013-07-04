@@ -44,7 +44,7 @@ public class BPAAnalyzer {
 					found = true;
 			}
 		} else {
-			jsonInput = new File(workDir, "bpa-test-deadlock-III.xml");
+			jsonInput = new File(workDir, "bpa-test-deadlock.xml");
 			if (jsonInput.exists())
 				found = true;
 		}
@@ -88,7 +88,7 @@ public class BPAAnalyzer {
 		Runtime rt = Runtime.getRuntime();
 		System.out.println(pnmlOutput);
 		String importCmd = new String("java -jar  " + renewPath + "loader.jar import " + pnmlOutput);
-		String exportCmd = new String("java -jar  " + renewPath + "loader.jar ex Lola " + workDir + "/bpa-test-deadlock-III.rnw");
+		String exportCmd = new String("java -jar  " + renewPath + "loader.jar ex Lola " + workDir + "/bpa-test-deadlock.rnw");
 		try {
 			Process renewImportPrc = rt.exec(importCmd);
 			BufferedReader renewOutput = new BufferedReader(new InputStreamReader(renewImportPrc.getInputStream()));
@@ -109,7 +109,7 @@ public class BPAAnalyzer {
 	private static void writeTaskFiles(List<String> formulae, String type) {
 		// writing task files to be checked by lola
 		
-		File fileLiveTransition = new File(workDir +File.separator + "LiveTransition");
+		File fileLiveTransition = new File(workDir +File.separator + "liveTransitions");
 		boolean exists = fileLiveTransition.exists();
 		if (!exists) {
 			fileLiveTransition.mkdir();
@@ -119,7 +119,7 @@ public class BPAAnalyzer {
 					.println("the file or directory you are searching does exist : "
 							+ exists);
 		}
-		File fileDeadProcess = new File(workDir + File.separator+"DeadProcess");
+		File fileDeadProcess = new File(workDir + File.separator+"deadProcess");
 		exists = fileDeadProcess.exists();
 		if (!exists) {
 			fileDeadProcess.mkdir();
@@ -151,7 +151,7 @@ public class BPAAnalyzer {
 	}
 
 	private static File writePNML(String pnmlNetSerialization) {
-		File outputFile = new File(workDir, "bpa-test-deadlock-III.pnml"); // TODO: use real
+		File outputFile = new File(workDir, "bpa-test-deadlock.pnml"); // TODO: use real
 																// names
 		try {
 			BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));

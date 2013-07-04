@@ -9,6 +9,8 @@ import java.util.logging.Logger;
 import de.uni_potsdam.hpi.bpt.promnicat.analysisModules.ConnectedEPC;
 import de.uni_potsdam.hpi.bpt.promnicat.bpa.Event.EventType;
 import java.util.*;
+
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 /**
  * @author rami.eidsabbagh
  *
@@ -22,38 +24,50 @@ public class test {
 	private static final File workDir = new File(System.getenv("userprofile")
 			+ File.separator + ".bpa");
 	public static void main(String[] args) throws Exception {
-		String param = workDir+File.separator+"bpa-test-deadlock-II.net";
+		String param = workDir+File.separator+"bpa-test-deadlock.net";
 		CorrectnessChecker checker = new CorrectnessChecker();
-		ArrayList<String> resultss = checker.checkDeadlock(param);
-		System.out.println(resultss);
+		//ArrayList<String> resultss = checker.checkDeadlock(param);
+		//System.out.println(resultss);
 		
-		String param3 = workDir+File.separator+"terminatingRun1.task";
+		//String param3 = workDir+File.separator+"terminatingRun1.task";
 		ArrayList<String> results = new ArrayList<String>();
 		ArrayList<String> deadProResult = new ArrayList<String>();
-		 ArrayList<String> liveTransResults;
+		 ArrayList<String> liveTransResults = new ArrayList<String>();
+		 ArrayList<String> terminRunResults = new ArrayList<String>();
 		String taskfile = "";
 		File[] files = workDir.listFiles();
 		for (File file : files) {
-			if(file.isDirectory()&& file.getName().contains("DeadProcess")){
-				File[] deadProcessTasks = file.listFiles();
-				for (File file2 : deadProcessTasks) {
-				 taskfile = file2.getPath();
-				 results = checker.checkModel(param, taskfile);
-				 deadProResult.add(results.get(2));
-				}
+			if(file.isDirectory()&& file.getName().contains("deadProcess")){
+				System.out.println(checker.checkForDeadProcesses(param, file));
+				//				File[] deadProcessTasks = file.listFiles();
+//				for (File file2 : deadProcessTasks) {
+//				 taskfile = file2.getPath();
+//				 results = checker.checkModel(param, taskfile);
+//				 deadProResult.add(results.get(2));
+//				}
 			}
-			if(file.isDirectory()&& file.getName().contains("LiveTransition")){
-				File[] liveTransition = file.listFiles();
-				for (File file2 : liveTransition) {
-				 taskfile = file2.getPath();
-				 results = checker.checkModel(param, taskfile);
-				
-				liveTransResults.add(results.get(2));
-				}
+			if(file.isDirectory()&& file.getName().contains("liveTransition")){
+				System.out.println(checker.checkForLivenessTransitions(param, file));
+				//				File[] liveTransition = file.listFiles();
+//				for (File file2 : liveTransition) {
+//				 taskfile = file2.getPath();
+//				 results = checker.checkModel(param, taskfile);
+//				
+//				liveTransResults.add(results.get(2));
+//				}
 			}
+			if(file.getName().contains("terminatingRun")){
+				taskfile =  file.getPath();
+				results = checker.checkModel(param, taskfile);				
+				terminRunResults.add(results.get(2));
+			}
+			
 		}
-		ArrayList<String> results = checker.checkModel(param, param3);
-		System.out.println(results);
+		//results = checker.checkModel(param, param3);
+		//System.out.println(results);
+		//System.out.println(liveTransResults);
+		//System.out.println(deadProResult);
+		//System.out.println(terminRunResults);
 //		String param2 = "-a";
 ////		String param3 = workDir+File.separator+"deadProcess1.task";
 //		String param3 = workDir+File.separator+"liveTransitions1.task";
