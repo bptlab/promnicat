@@ -8,8 +8,12 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+
+import javax.swing.JFrame;
 
 import org.jbpt.petri.NetSystem;
 
@@ -18,9 +22,11 @@ public class BPAAnalyzer {
 	private static final File workDir = new File(System.getenv("userprofile")
 			+ File.separator + ".bpa");
 	
+	
 	// TODO: introduce properties
 	private static String renewPath;
 	private static String lolaPath;
+	private static String directoryPath;
 
 	/**
 	 * I glue all the stuff together: Import the json, transform to pnml and
@@ -28,8 +34,9 @@ public class BPAAnalyzer {
 	 * interpret result.
 	 * 
 	 * @param args
+	 * @throws Exception 
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		init();
 		File jsonInput;
 		Boolean found = false;
@@ -64,11 +71,18 @@ public class BPAAnalyzer {
 			writeTaskFiles(trans.getDeadProcessFormulae(),"deadProcess");
 			writeTaskFiles(trans.getLivelockFormulae(), "liveTransitions");
 			writeTaskFiles(trans.getTerminatingFormula(), "terminatingRun");
-			pnmlToNet(pnmlOutput);
+			//pnmlToNet(pnmlOutput);
+			CorrectnessChecker checker = new CorrectnessChecker(workDir);
+			
+			HashMap <String, HashMap<Integer, ArrayList<String>>> completeResults = checker.analyseAllProperties(pnmlOutput.getPath().replaceAll(".pnml", ".net"));
+			DisplayAnalysisResults test = new DisplayAnalysisResults(completeResults);
+			test.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		}
 
 	}
-
+	
+	
+	
 	private static void init() {
 		Properties props = new Properties();
 		try {
@@ -80,6 +94,7 @@ public class BPAAnalyzer {
 		}
 		renewPath = props.getProperty("renew.path");
 		lolaPath = props.getProperty("lola.path");
+		directoryPath = props.getProperty("directory.path");
 	}
 
 	private static void pnmlToNet(File pnmlOutput) {
