@@ -47,7 +47,8 @@ public class BPATransformer {
 
 	private List<String> deadProcessFormulae = new ArrayList<String>();
 	private List<String> livelockFormulae = new ArrayList<String>();
-	private StringBuilder terminatingFormula = new StringBuilder("FORMULA ");
+	private StringBuilder terminatingFormula = new StringBuilder("FORMULA EXPATH EVENTUALLY ");
+	private List<Formula> allFormulae = new ArrayList<Formula>(); 
 
 	/**
 	 * TODO: Should I take a strategy to allow different types of
@@ -73,12 +74,6 @@ public class BPATransformer {
 			System.out.println("|- Transforming process " + process.getName());
 			PetriNet transformedProcess = transform(process);
 			resultingNets.put(process, transformedProcess);
-			for (Place p : transformedProcess.getPlaces()) {
-				terminatingFormula
-						.append(p.getLabel()
-								+ (transformedProcess.getDirectSuccessors(p)
-										.isEmpty() ? " > " : " = ") + "0 AND ");
-			}
 		}
 
 		// intermediary nets
@@ -91,10 +86,6 @@ public class BPATransformer {
 				intermediaryNets.put(event, transformed);
 			}
 		}
-		int end = terminatingFormula.length();
-		terminatingFormula.delete(end - 4, end);
-		System.out.println("|= Formula for terminating run: "
-				+ terminatingFormula);
 
 		// now compose them
 		Collection<PetriNet> allNets = new ArrayList<PetriNet>();
@@ -103,7 +94,18 @@ public class BPATransformer {
 			allNets.addAll(nets);
 		}
 		bpaNet = compose(allNets);
-
+		for (Place p : bpaNet.getPlaces()) {
+			terminatingFormula
+					.append(p.getLabel()
+							+ (bpaNet.getDirectSuccessors(p)
+									.isEmpty() ? " > " : " = ") + "0 AND ");
+		}
+		int end = terminatingFormula.length();
+		terminatingFormula.delete(end - 4, end);
+		System.out.println("|= Formula for terminating run: "
+				+ terminatingFormula);
+		allFormulae.add(new Formula(terminatingFormula.toString(), CorrectnessCriteria.Termination));
+		
 		// construct liveness stateprop for each transition, livelock formula
 		StringBuilder livelockFormula = new StringBuilder(256);
 		for (Transition t : bpaNet.getTransitions()) {
@@ -128,6 +130,7 @@ public class BPATransformer {
 			livelockFormula.delete(end-4, end);
 			System.out.println(" --- Formula for transition " + t.getLabel() + ": " + livelockFormula);
 			livelockFormulae.add(livelockFormula.toString());
+			allFormulae.add(new Formula(livelockFormula.toString(), CorrectnessCriteria.NoLiveLocks));
 			livelockFormula.setLength(0); // reset StringBuilder
 		}
 		return bpaNet;
@@ -191,6 +194,7 @@ public class BPATransformer {
 		System.out.println(" -- State predicate to check dead process: "
 				+ formula);
 		deadProcessFormulae.add(formula.toString());
+		allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.NoDeadProcesses));
 		return processNet;
 	}
 
@@ -532,6 +536,10 @@ public class BPATransformer {
 		List<String> result = new ArrayList<String>();
 		result.add(terminatingFormula.toString()); 
 		return result;
+	}
+
+	protected List<Formula> getAllFormulae() {
+		return allFormulae;
 	}
 
 	// TODO: Naming of places and transitions

@@ -5,11 +5,13 @@ package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 
 import java.io.BufferedReader;
 
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -21,24 +23,47 @@ import java.util.Map;
 import java.util.Properties;
 import java.lang.ProcessBuilder;
 
-/**
- * @author rami.eidsabbagh
- *
- */
+import weka.classifiers.bayes.net.search.fixed.FromFile;
+
 /**
  * @author rami.eidsabbagh
  *
  */
 public class CorrectnessChecker {
 
-	private static File workDir; 
-	private static String renewPath;
-	private static String lolaPath;
-	//File workDir;
+	private final static File workDir = new File(System.getenv("userprofile")
+			+ File.separator + ".bpa");; 
+	private final static String renewPath;
+	private final static String lolaPath;
+	private final static Properties configuration = new Properties();
+	private static final String LIVELOCK_FILENAME = "liveTransition";
+	private static final String DEADPROCESS_FILENAME = "deadProcess";
+	private static final String TERMINATION_FILENAME = "terminatingRun";
 	
-	//String lolaPath ="C:\\renew-2.3\\plugins\\lola-2.4_0.8.4\\lib\\";
+	static {
+		try {
+			configuration.load(new FileReader(new File(workDir,".properties")));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		renewPath = configuration.getProperty("renew.path");
+		lolaPath = configuration.getProperty("lola.path");	
+	}
+	
+	/**
+	 * The lola net file this checker will check.
+	 */
+	private final File toCheck;
+	private final List<Formula> formulae;
+	
 	Enum<CheckerType> lola;
-	ArrayList<String> params = new ArrayList<String>();
+	private ArrayList<String> params = new ArrayList<String>();
+	private int liveLockCounter = 0;
+	private int deadProcessCounter = 0;
+	private int terminationCounter = 0;
+	private Runtime rt;
 	
 	public enum CheckerType{
 		LOLA("lola.exe"),
@@ -62,29 +87,29 @@ public class CorrectnessChecker {
 		
 	}
 	
-		
 	/**
-	 * @param lola
-	 * @param params
-	 * 
+	 * Create a new CorrctnessChecker to check a given net file.
+	 * @param netFile, the {@link File} to check.
 	 */
-	public CorrectnessChecker(File directory) {
-		workDir = directory;
-		init();
+	public CorrectnessChecker(File netFile, List<Formula> formulae) {
+		toCheck = netFile;
+		this.formulae = formulae;
+		rt = Runtime.getRuntime(); 
 	}
 	
-	private static void init() {
-		Properties props = new Properties();
-		try {
-			props.load(new FileReader(new File(workDir,".properties")));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+	public static void main(String[] args) throws Exception {
+		File netFile = new File(workDir, "simpleNet.net");
+		Formula f = new Formula("FORMULA p >= 1", CorrectnessCriteria.NoLiveLocks);
+		CorrectnessChecker checker = new CorrectnessChecker(netFile, Arrays.asList(f));
+		File taskFile = checker.writeTaskFile(f);
+		List<String> result =  checker.checkModel(netFile.getAbsolutePath(), taskFile.toString());
+		//List<String> result = checker.checkFormula(f);
+		for (String string : result) {
+			System.out.println(string);
 		}
-		renewPath = props.getProperty("renew.path");
-		lolaPath = props.getProperty("lola.path");
 	}
+	
+	
 	
 	public HashMap<Integer, ArrayList<String>> checkForLivenessTransitions(String param, File directoryPath) throws Exception{
 		File[] liveTransitionTasks = directoryPath.listFiles();
@@ -206,8 +231,8 @@ public class CorrectnessChecker {
 	 * @throws Exception
 	 */
 	public ArrayList<String> checkModel(String pathtofile, String pathtotask) throws Exception{
-		
-		lola = CheckerType.LOLAMODELCHECKING;
+		//lola = CheckerType.LOLAMODELCHECKING;
+		lola = CheckerType.LOLALIVEPROP;
 		System.out.println(lola.toString());
 		params.clear();
 		params.add(lolaPath+lola.toString());
@@ -215,14 +240,44 @@ public class CorrectnessChecker {
 		params.add("-P");
 		params.add("-a");
 		params.add(pathtotask);
-		
-		
 		Process process = createProcess(params);
 		return getOutput(process);
-		
-		
 	}
 	
+	
+	private List<String> checkModel(CheckerType whichLola, List<String> additionalParams, Formula formula) {
+		System.out.println("Checking formula: " + formula.getContent());
+		StringBuilder cmd = new StringBuilder();
+		//params.clear();
+		cmd.append(lolaPath);
+		cmd.append(whichLola.toString());
+		cmd.append(" ");
+		cmd.append(toCheck.getAbsolutePath());
+		cmd.append(" -a ");
+		cmd.append(formula.getFilepath().getAbsolutePath());
+		//cmd.append(additionalParams);
+		System.out.println(cmd);
+		List<String> result = new ArrayList<String>();
+		try {
+			Process process = rt.exec(cmd.toString());
+			BufferedReader br = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+			String line;
+			result.add("Result: " + process.waitFor());
+			while ((line=br.readLine()) != null) {
+				result.add(line);
+			}
+			
+			
+		} catch (IOException | InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		//Process proc = createProcess(params); 		
+		return result;
+	}
+
+
+
 	public HashMap <String, HashMap<Integer, ArrayList<String>>> analyseAllProperties(String param) throws Exception{
 		HashMap <String, HashMap<Integer, ArrayList<String>>> completeResults = new HashMap<String, HashMap<Integer,ArrayList<String>>>();
 		HashMap<Integer, ArrayList<String>> deadProResult = new HashMap<Integer, ArrayList<String>>();
@@ -318,26 +373,44 @@ public class CorrectnessChecker {
 	
 	
 	
-	private Process createProcess(ArrayList<String> params)throws Exception{
+	private Process createProcess(ArrayList<String> params) {
 		ProcessBuilder builder = new ProcessBuilder(params);
-		 Process process = builder.start();
+		Process process = null;
+		try {
+			process = builder.start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return process;
 	}
 	
-	private ArrayList<String> getOutput(Process process)throws Exception{
+	/**
+	 * Get the output produced by LoLA as a list of Strings.
+	 * @param process
+	 * @return
+	 */
+	private ArrayList<String> getOutput(Process process) {
 		ArrayList<String> results = new ArrayList<String>();
-		String output;
-		output = loadStream(process.getInputStream());
-		String error  = loadStream(process.getErrorStream());
-        int rc = process.waitFor();
-        
-        results.add(output);
-        results.add(error);
-        results.add(new Integer(rc).toString());
+		try {
+			String output = loadStream(process.getInputStream());
+			String error  = loadStream(process.getErrorStream());
+			int rc = process.waitFor();
+			results.add(output);
+			results.add(error);
+			results.add("Result: " + rc);
+		} catch (Exception e) {
+			System.out.println("Failed to get results for process " + process);
+			e.printStackTrace();
+		}
         return results;
-		
 	}
 	
+	/**
+	 * Read a stream into a String.
+	 * @param s
+	 * @return
+	 * @throws Exception
+	 */
 	private static String loadStream(InputStream s) throws Exception
     {
         BufferedReader br = new BufferedReader(new InputStreamReader(s));
@@ -347,4 +420,124 @@ public class CorrectnessChecker {
             sb.append(line).append("\n");
         return sb.toString();
     }
+	
+	/**
+	 * Checks a given {@link Formula}. If the formula has not been
+	 * written to file yet, this is done by {@link CorrectnessChecker.writeTaskFile()}.
+	 * @param formula
+	 * @return the output from LoLA, as a list of Strings
+	 */
+	public List<String> checkFormula(Formula formula) {
+		if (! formula.hasFile()) { // write to file
+			File taskFile = writeTaskFile(formula);
+			if (taskFile != null) 
+				formula.setFilepath(taskFile);
+		}
+		CheckerType whichLola;
+		List<String> additionalParams = new ArrayList<String>();
+		switch (formula.getType()) {
+		case Termination:
+			whichLola = CheckerType.LOLAMODELCHECKING;
+			additionalParams.add("-P");
+			break;
+		case NoDeadProcesses:
+			whichLola = CheckerType.LOLAREACHMARK;
+			break;
+		case NoLiveLocks:
+			whichLola = CheckerType.LOLALIVEPROP;
+			break;
+		default: 
+			whichLola = CheckerType.LOLA;
+		}
+		return checkModel(whichLola, additionalParams, formula);
+	}
+
+
+	/** 
+	 *  Writes the task file for the given formula. Does not set the 
+	 *  filepath field of the formula.
+	 *  @param a formula
+	 *  @return the written task file
+	 */
+	private File writeTaskFile(Formula formula) {
+		StringBuilder taskFileName = new StringBuilder();
+		switch (formula.getType()) {
+		case Termination:
+			terminationCounter++;
+			taskFileName.append(TERMINATION_FILENAME);
+			taskFileName.append(terminationCounter);
+			break;
+		case NoDeadProcesses:
+			deadProcessCounter++;
+			taskFileName.append(DEADPROCESS_FILENAME);
+			taskFileName.append(deadProcessCounter);
+			break;
+		case NoLiveLocks:
+			liveLockCounter++;
+			taskFileName.append(LIVELOCK_FILENAME);
+			taskFileName.append(liveLockCounter);
+			break;
+		}
+		taskFileName.append(".task");
+		File taskFile = new File(workDir, taskFileName.toString());
+		try {
+			BufferedWriter bw = new BufferedWriter(new FileWriter(taskFile));
+			bw.write(formula.getContent());
+			bw.close();
+			System.out.println("Task file " + taskFile
+					+ " successfully written.");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return taskFile;
+	}
+//		File liveTransitionDir = new File(workDir +File.separator + "liveTransitions");
+//		boolean exists = liveTransitionDir.exists();
+//		if (!exists) {
+//			liveTransitionDir.mkdir();
+//		} else { // It returns true if File or directory exists
+//			System.out.println("the file or directory you are searching does exist : "
+//							+ exists);
+//		}
+//		File deadProcessDir = new File(workDir + File.separator+"deadProcess");
+//		exists = deadProcessDir.exists();
+//		if (!exists) {
+//			deadProcessDir.mkdir();
+//		} else { // It returns true if File or directory exists
+//			System.out.println("the file or directory you are searching does exist : "
+//							+ exists);
+//		}
+//		int i = 1;
+//		File taskFile;
+//		 for (String formula : formulae) {
+//			if(type.equals("liveTransitions")) {
+//				taskFile = new File(liveTransitionDir.getPath(), type + i + ".task");
+//			} else if(type.equals("deadProcess")){
+//				taskFile = new File(deadProcessDir.getPath(), type + i + ".task");
+//			} else {
+//				taskFile = new File(workDir, type + i + ".task");
+//			}
+//			try {
+//				BufferedWriter bw = new BufferedWriter(new FileWriter(taskFile));
+//				bw.write(formula);
+//				bw.close();
+//				i++;
+//				System.out.println("Task file " + taskFile
+//						+ " successfully written.");
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
+
+
+
+	public void checkBPA() {
+		List<String> result = new ArrayList<String>();
+		for (Formula formula : formulae) {
+			 result = checkFormula(formula);
+			 for (String string : result) {
+				 System.out.println(string);
+			 }
+		}
+	}
 }

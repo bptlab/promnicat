@@ -22,12 +22,30 @@ public class BPAAnalyzer {
 	private static final File workDir = new File(System.getenv("userprofile")
 			+ File.separator + ".bpa");
 	
-	
-	// TODO: introduce properties
-	private static String renewPath;
-	private static String lolaPath;
-	private static String directoryPath;
+	private static final String renewPath;
+	//private static final String lolaPath;
+	private static final String directoryPath;
+	private static final String defaultFileName;
+	private static final Properties configuration = new Properties();
 
+	private static File jsonInput;
+	
+	static // here the configuration is read
+	{
+		//Properties props = new Properties();
+		try {
+			configuration.load(new FileReader(new File(workDir,".properties")));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		renewPath = configuration.getProperty("renew.path");
+		//lolaPath = configuration.getProperty("lola.path");
+		directoryPath = configuration.getProperty("directory.path");
+		defaultFileName = configuration.getProperty("default.file");
+	}
+	
 	/**
 	 * I glue all the stuff together: Import the json, transform to pnml and
 	 * write to file, import with renew, export to net file, call lola,
@@ -37,8 +55,41 @@ public class BPAAnalyzer {
 	 * @throws Exception 
 	 */
 	public static void main(String[] args) throws Exception {
-		init();
-		File jsonInput;
+		Boolean found = findInputFile(args);
+		if (!found) {
+			System.out.println("No input file found, aborting.\n Pass file as argument or configure 'default.file' property.");
+		} else {
+			// read json file
+			BPA bpa = BPAImporter.fromXML(jsonInput);
+			
+			// transform it
+			BPATransformer trans = new BPATransformer();
+			NetSystem pns = trans.transform(bpa);
+			pns.setName(bpa.getName() != null ? bpa.getName() : "Testnetz");
+
+			// serialize and write to file
+			String pnmlNetSerialization = InscriptionSerializer
+					.serializeNet(pns);
+			File pnmlOutput = writePNML(pnmlNetSerialization);
+
+			// transform to net file
+			File netFile = pnmlToNet(pnmlOutput);
+			//writeTaskFiles(trans.getDeadProcessFormulae(),"deadProcess");
+			//writeTaskFiles(trans.getLivelockFormulae(), "liveTransitions");
+			//writeTaskFiles(trans.getTerminatingFormula(), "terminatingRun");
+			//File netFile = new File(workDir, "bpa-test.net");
+
+			CorrectnessChecker checker = new CorrectnessChecker(netFile, trans.getAllFormulae().subList(0, 1));
+			checker.checkBPA();
+			
+			//HashMap <String, HashMap<Integer, ArrayList<String>>> completeResults = checker.analyseAllProperties(pnmlOutput.getPath().replaceAll(".pnml", ".net"));
+			//DisplayAnalysisResults test = new DisplayAnalysisResults(completeResults);
+			//test.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		}
+
+	}
+
+	private static Boolean findInputFile(String[] args) {
 		Boolean found = false;
 		System.out.println(workDir);
 		if (args.length > 0 && args[0] != null) { // filename provided
@@ -46,64 +97,35 @@ public class BPAAnalyzer {
 			if (jsonInput.exists()) {
 				found = true;
 			} else { // try relative path
-				jsonInput = new File(System.getProperty("user.dir"), args[0]);
+				jsonInput = new File(directoryPath, args[0]);
 				if (jsonInput.exists())
 					found = true;
 			}
 		} else {
-			jsonInput = new File(workDir, "bpa-test-deadlock.xml");
-			if (jsonInput.exists())
-				found = true;
+			jsonInput = new File(workDir, defaultFileName);
+			if (jsonInput.exists()) {
+				found = true;	
+			} else { // deprecated: use default.file in .properties
+				jsonInput = new File(workDir, "bpa-test.xml");
+				if (jsonInput.exists()) {
+					found = true;
+				}
+			}
 		}
-		if (!found) {
-			System.out.println("File " + args[0] + " not found. Aborting.");
-		} else {
-			// read json file
-			BPA bpa = BPAImporter.fromXML(jsonInput);
-			// transform it
-			BPATransformer trans = new BPATransformer();
-			NetSystem pns = trans.transform(bpa);
-			pns.setName(bpa.getName() != null ? bpa.getName() : "Testnetz");
-			// serialize and write to file
-			String pnmlNetSerialization = InscriptionSerializer
-					.serializeNet(pns);
-			File pnmlOutput = writePNML(pnmlNetSerialization);
-			writeTaskFiles(trans.getDeadProcessFormulae(),"deadProcess");
-			writeTaskFiles(trans.getLivelockFormulae(), "liveTransitions");
-			writeTaskFiles(trans.getTerminatingFormula(), "terminatingRun");
-			//pnmlToNet(pnmlOutput);
-			CorrectnessChecker checker = new CorrectnessChecker(workDir);
-			
-			HashMap <String, HashMap<Integer, ArrayList<String>>> completeResults = checker.analyseAllProperties(pnmlOutput.getPath().replaceAll(".pnml", ".net"));
-			DisplayAnalysisResults test = new DisplayAnalysisResults(completeResults);
-			test.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		}
-
-	}
-	
-	
-	
-	private static void init() {
-		Properties props = new Properties();
-		try {
-			props.load(new FileReader(new File(workDir,".properties")));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		renewPath = props.getProperty("renew.path");
-		lolaPath = props.getProperty("lola.path");
-		directoryPath = props.getProperty("directory.path");
+		return found;
 	}
 
-	private static void pnmlToNet(File pnmlOutput) {
+	private static File pnmlToNet(File pnmlFile) {
 		// import/export with renew
 		System.out.println("Transforming Petri net");
+		String pnmlFilePath = pnmlFile.getAbsolutePath();
+		String baseFileName = pnmlFilePath.substring(0, pnmlFilePath.lastIndexOf("."));
+		File rnwFile = new File(baseFileName + ".rnw");
+		File netFile = new File(baseFileName + ".net");
 		Runtime rt = Runtime.getRuntime();
-		System.out.println(pnmlOutput);
-		String importCmd = new String("java -jar  " + renewPath + "loader.jar import " + pnmlOutput);
-		String exportCmd = new String("java -jar  " + renewPath + "loader.jar ex Lola " + workDir + "/bpa-test-deadlock.rnw");
+		System.out.println(pnmlFile);
+		String importCmd = new String("java -jar  " + renewPath + "loader.jar import " + pnmlFile);
+		String exportCmd = new String("java -jar  " + renewPath + "loader.jar ex Lola " + rnwFile);
 		try {
 			Process renewImportPrc = rt.exec(importCmd);
 			BufferedReader renewOutput = new BufferedReader(new InputStreamReader(renewImportPrc.getInputStream()));
@@ -111,6 +133,7 @@ public class BPAAnalyzer {
 			while ((line = renewOutput.readLine()) != null) {
 				System.out.println(line);
 			}
+			renewImportPrc.waitFor();
 			Process renewExportPrc = rt.exec(exportCmd);
 			renewOutput = new BufferedReader(new InputStreamReader(renewExportPrc.getInputStream()));
 			while ((line = renewOutput.readLine()) != null) {
@@ -118,56 +141,17 @@ public class BPAAnalyzer {
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-	}
-
-	private static void writeTaskFiles(List<String> formulae, String type) {
-		// writing task files to be checked by lola
-		
-		File fileLiveTransition = new File(workDir +File.separator + "liveTransitions");
-		boolean exists = fileLiveTransition.exists();
-		if (!exists) {
-			fileLiveTransition.mkdir();
-		} else {
-			// It returns true if File or directory exists
-			System.out
-					.println("the file or directory you are searching does exist : "
-							+ exists);
-		}
-		File fileDeadProcess = new File(workDir + File.separator+"deadProcess");
-		exists = fileDeadProcess.exists();
-		if (!exists) {
-			fileDeadProcess.mkdir();
-		} else { // It returns true if File or directory exists
-			System.out.println("the file or directory you are searching does exist : "
-							+ exists);
-		}
-		int i = 1;
-		File taskFile;
-		 for (String formula : formulae) {
-			if(type.equals("liveTransitions")) {
-				taskFile = new File(fileLiveTransition.getPath(), type + i + ".task");
-			} else if(type.equals("deadProcess")){
-				taskFile = new File(fileDeadProcess.getPath(), type + i + ".task");
-			} else {
-				taskFile = new File(workDir, type + i + ".task");
-			}
-			try {
-				BufferedWriter bw = new BufferedWriter(new FileWriter(taskFile));
-				bw.write(formula);
-				bw.close();
-				i++;
-				System.out.println("Task file " + taskFile
-						+ " successfully written.");
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		return netFile;
 	}
 
 	private static File writePNML(String pnmlNetSerialization) {
-		File outputFile = new File(workDir, "bpa-test-deadlock.pnml"); // TODO: use real
-																// names
+		String baseFileName = jsonInput.getName();
+		String pnmlOutput = baseFileName.substring(0, baseFileName.lastIndexOf(".")) + ".pnml";
+		File outputFile = new File(workDir, pnmlOutput);
 		try {
 			BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
 			bw.write(pnmlNetSerialization);
