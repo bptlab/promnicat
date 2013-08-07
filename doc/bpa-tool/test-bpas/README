@@ -1,0 +1,5 @@
+This file describes the exemplary BPAs contained in this folder.
+
+bpa-pending-message
+-------------------
+2 processes p1 and p2. p1 sends 2 messages to p2, which sends 1 message in return. No run terminates because of the one pending message, however it terminates lazily.
