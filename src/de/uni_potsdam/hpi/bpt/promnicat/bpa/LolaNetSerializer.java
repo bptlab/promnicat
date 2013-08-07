@@ -60,7 +60,10 @@ public class LolaNetSerializer {
 		List<Flow> pre = new ArrayList<Flow>();
 		List<Flow> post = new ArrayList<Flow>();
 		StringBuilder tmp = new StringBuilder();
+		Collection<Transition> trans = pn.getTransitions();
+		System.out.println("Collection of transitions has size :" + trans.size());
 		for (Transition t : pn.getTransitions()) {
+			System.out.println("Transition label :"+t.getLabel());
 			sb.append(TRANSITION);
 			sb.append(t.getLabel());
 			Collection<Flow> edges = pn.getEdges(t);

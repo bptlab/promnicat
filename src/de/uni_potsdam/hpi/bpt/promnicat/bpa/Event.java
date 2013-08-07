@@ -105,6 +105,7 @@ public EventType getType(){
 
 public boolean hasTrivialMultiplicity() {
 	return (multiplicity.length == 1 && multiplicity[0] == 1);
+	
 }
 
 

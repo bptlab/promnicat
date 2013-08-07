@@ -66,19 +66,32 @@ public class BPAAnalyzer {
 			BPATransformer trans = new BPATransformer();
 			NetSystem pns = trans.transform(bpa);
 			pns.setName(bpa.getName() != null ? bpa.getName() : "Testnetz");
-
+			
+			File netFile = new File(workDir+File.separator+ pns.getName() +".net");
+			FileWriter fw;
+			try {
+				fw = new FileWriter(netFile);
+				fw.write(LolaNetSerializer.serialize(pns));
+				fw.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
+			
+			
+			
 			// serialize and write to file
-			String pnmlNetSerialization = InscriptionSerializer
+			/*String pnmlNetSerialization = InscriptionSerializer
 					.serializeNet(pns);
 			File pnmlOutput = writePNML(pnmlNetSerialization);
 
 			// transform to net file
-			File netFile = pnmlToNet(pnmlOutput);
+			File netFile = pnmlToNet(pnmlOutput);*/
 			//writeTaskFiles(trans.getDeadProcessFormulae(),"deadProcess");
 			//writeTaskFiles(trans.getLivelockFormulae(), "liveTransitions");
 			//writeTaskFiles(trans.getTerminatingFormula(), "terminatingRun");
 			//File netFile = new File(workDir, "bpa-test.net");
-
+			
 			CorrectnessChecker checker = new CorrectnessChecker(netFile, trans.getAllFormulae().subList(0, 1));
 			checker.checkBPA();
 			

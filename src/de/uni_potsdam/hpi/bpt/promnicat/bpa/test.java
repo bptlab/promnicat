@@ -27,7 +27,7 @@ public class test {
 	public static void main(String[] args) throws Exception {
 		String param = workDir+File.separator+"lazy-terminating-example.net";
 		File testfile = new File(workDir+File.separator+"lazy-terminating-example.net");
-		Formula formulae = new Formula(workDir+File.separator +"lazy-terminating-example.task", CorrectnessCriteria.LazyTermination);
+		Formula formulae = new Formula(workDir+File.separator +"lazy-terminating-example.task", CorrectnessCriteria.NoDeadProcesses);
 		List<Formula> list = new ArrayList(); 
 				
 				list.add(formulae);
@@ -43,7 +43,7 @@ public class test {
 		 ArrayList<String> terminRunResults = new ArrayList<String>();
 		String taskfile = "";
 		File[] files = workDir.listFiles();
-		String file = workDir+File.separator+"LazyTerminationCheck.net";
+		String file = workDir+File.separator+"LazyTermCheck.net";
 		String task = workDir+File.separator+"LazyTerminationCheck.task";
 		results = checker.checkModel(file, task);
 		System.out.println(results.size());

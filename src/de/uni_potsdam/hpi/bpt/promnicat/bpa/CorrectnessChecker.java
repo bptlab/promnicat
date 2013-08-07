@@ -231,8 +231,8 @@ public class CorrectnessChecker {
 	 * @throws Exception
 	 */
 	public ArrayList<String> checkModel(String pathtofile, String pathtotask) throws Exception{
-		//lola = CheckerType.LOLAMODELCHECKING;
-		lola = CheckerType.LOLALIVEPROP;
+		lola = CheckerType.LOLAMODELCHECKING;
+		//lola = CheckerType.LOLALIVEPROP;
 		System.out.println(lola.toString());
 		params.clear();
 		params.add(lolaPath+lola.toString());

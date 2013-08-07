@@ -348,9 +348,10 @@ public class BPATransformer {
 			placeName = INTERMEDIARY_PLACE + eventLabel;
 			outPlace.setLabel(placeName);
 		}
+		int transitionI = 0;
 		for (SendingEvent predecessor : pre) {
 			Place inPlace = new Place();
-			Transition tmpTransition = new Transition("t_" + eventLabel);
+			Transition tmpTransition = new Transition("t_" + eventLabel+transitionI);
 			List<ReceivingEvent> predecessorPost = predecessor.getPostset();
 			if (predecessorPost != null && predecessorPost.size() > 1) {
 				placeName = INTERMEDIARY_PLACE + predecessor.getLabel() + "_"
@@ -366,6 +367,7 @@ public class BPATransformer {
 			}
 			collector.addFlow(inPlace, tmpTransition);
 			collector.addFlow(tmpTransition, outPlace);
+			transitionI++;
 		}
 		System.out.println(" --- place " + collector.getPlaces());
 		if (placeName != null)
