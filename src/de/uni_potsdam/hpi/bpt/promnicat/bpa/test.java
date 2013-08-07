@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 
 import de.uni_potsdam.hpi.bpt.promnicat.analysisModules.ConnectedEPC;
 import de.uni_potsdam.hpi.bpt.promnicat.bpa.Event.EventType;
+
 import java.util.*;
 
 import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
@@ -22,10 +23,16 @@ public class test {
 	 * @param args
 	 */
 	private static final File workDir = new File(System.getenv("userprofile")
-			+ File.separator + ".bpa");
+			+File.separator+	 ".bpa");
 	public static void main(String[] args) throws Exception {
-		String param = workDir+File.separator+"bpa-test-deadlock.net";
-		CorrectnessChecker checker = new CorrectnessChecker();
+		String param = workDir+File.separator+"lazy-terminating-example.net";
+		File testfile = new File(workDir+File.separator+"lazy-terminating-example.net");
+		Formula formulae = new Formula(workDir+File.separator +"lazy-terminating-example.task", CorrectnessCriteria.LazyTermination);
+		List<Formula> list = new ArrayList(); 
+				
+				list.add(formulae);
+		
+		CorrectnessChecker checker = new CorrectnessChecker(testfile, list);
 		//ArrayList<String> resultss = checker.checkDeadlock(param);
 		//System.out.println(resultss);
 		
@@ -36,9 +43,22 @@ public class test {
 		 ArrayList<String> terminRunResults = new ArrayList<String>();
 		String taskfile = "";
 		File[] files = workDir.listFiles();
-		for (File file : files) {
+		String file = workDir+File.separator+"LazyTerminationCheck.net";
+		String task = workDir+File.separator+"LazyTerminationCheck.task";
+		results = checker.checkModel(file, task);
+		System.out.println(results.size());
+		Iterator<String> iter = results.iterator();
+		int i = 1;
+		while (iter.hasNext()) {
+			System.out.println("Result in array: "+i);
+			String string = (String) iter.next();
+			System.out.println(string);
+			i++;
+		}
+		
+		/*for (File file : files) {
 			if(file.isDirectory()&& file.getName().contains("deadProcess")){
-				System.out.println(checker.checkForDeadProcesses(param, file));
+				//System.out.println(checker.checkForDeadProcesses(param, file));
 				//				File[] deadProcessTasks = file.listFiles();
 //				for (File file2 : deadProcessTasks) {
 //				 taskfile = file2.getPath();
@@ -62,7 +82,7 @@ public class test {
 				terminRunResults.add(results.get(2));
 			}
 			
-		}
+		}*/
 		//results = checker.checkModel(param, param3);
 		//System.out.println(results);
 		//System.out.println(liveTransResults);
