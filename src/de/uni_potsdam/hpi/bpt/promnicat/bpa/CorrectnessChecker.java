@@ -13,6 +13,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -268,7 +269,7 @@ public class CorrectnessChecker {
 			}
 			
 			
-		} catch (IOException | InterruptedException e) {
+		} catch (InterruptedException | IOException  e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

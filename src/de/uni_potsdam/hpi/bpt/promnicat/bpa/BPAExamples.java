@@ -41,10 +41,11 @@ public class BPAExamples {
 
 		final ReceivingEvent e5 = new StartEvent(9, "u", new int[]{1});
 		final ReceivingEvent e6 = new IntermediateCatchingEvent(9,"v", new int[]{1} );
-		final SendingEvent e9 = new IntermediateThrowingEvent(9,"z", new int[]{1} );
+		final SendingEvent e9 = new IntermediateThrowingEvent(9,"w", new int[]{1} );
+		final SendingEvent e10 = new EndEvent(9,"x", new int[]{1});
 		
-		final ReceivingEvent e7 = new StartEvent(12, "x", new int[]{1});
-		final SendingEvent e8 = new EndEvent(12,"y", new int[]{1} );
+		final ReceivingEvent e7 = new StartEvent(12, "y", new int[]{1});
+		final SendingEvent e8 = new EndEvent(12,"z", new int[]{1} );
 		
 		
 //		e1.setPostset(Arrays.asList(e2,e5));

@@ -44,8 +44,11 @@ public class BPATransformer {
 	private final String INTERNAL_PLACE = "intern_"; // replaces p'
 	private final String INTERMEDIARY_PLACE = "q_"; // replaces p''
 	private final String NORMAL_PLACE = "p_";
+	private final String CHECK_START_PLACE = "p_cs_"; // for testing if a process started
+	private final String CHECK_END_PLACE = "p_ce_"; // for testing if a process terminated
 
 	private List<String> deadProcessFormulae = new ArrayList<String>();
+	private List<String> terminatingProcessFormulae = new ArrayList<String>();
 	private List<String> livelockFormulae = new ArrayList<String>();
 	private StringBuilder terminatingFormula = new StringBuilder("FORMULA EXPATH EVENTUALLY ");
 	private List<Formula> allFormulae = new ArrayList<Formula>(); 
@@ -145,7 +148,7 @@ public class BPATransformer {
 	private PetriNet transform(BusinessProcess process) {
 		NetSystem processNet = new NetSystem();
 		Boolean first = true;
-		Place p, pPrime = null;
+		Place p, pPrime, pCheck = null;
 		Transition t;
 		StringBuilder formula = new StringBuilder("FORMULA ");
 		// iterate over events, construct process' net
@@ -154,17 +157,36 @@ public class BPATransformer {
 			Event ev = iter.next();
 			p = new Place(NORMAL_PLACE + ev.getLabel());
 			t = new Transition("t_" + ev.getLabel());
-			System.out.println(" -- Handling event " + ev.getLabel()
-					+ ", created place " + p.getName());
 			processNet.addTransition(t);
 			processNet.addPlace(p);
-
+			
+			if (ev instanceof StartEvent) {
+				pCheck = new Place(CHECK_START_PLACE + ev.getLabel());
+				System.out.println(" -- Handling event " + ev.getLabel()
+						+ ", created place " + p.getName() + " and test place "+pCheck.getLabel());
+				
+				processNet.addPlace(pCheck);
+			} else if(ev instanceof EndEvent){
+				pCheck = new Place(CHECK_END_PLACE + ev.getLabel());
+				System.out.println(" -- Handling event " + ev.getLabel()
+						+ ", created place " + p.getName()+ " and test place "+pCheck.getLabel());
+				processNet.addPlace(pCheck);
+			}
+			
+			
+			
 			// determine arc direction between p and t
 			if (ev instanceof SendingEvent) {
 				processNet.addEdge(t, p);
+				if(ev instanceof StartEvent){
+					processNet.addEdge(t, pCheck);
+				}
 			} else if (ev instanceof ReceivingEvent) {
 				processNet.addEdge(p, t);
 				// if (!first) formula.append(p.getLabel() + " = 0 AND ");
+				if(ev instanceof EndEvent){
+					processNet.addEdge(t, pCheck);
+				}	
 			}
 
 			// handle start event, no pPrime exists for it
@@ -172,29 +194,45 @@ public class BPATransformer {
 				first = false;
 				if (ev instanceof StartEvent) {
 					// build CTL formula
-					formula.append(p.getLabel() + " > 0 ");
+					formula.append(pCheck.getLabel() + " > 0 ");
+					deadProcessFormulae.add(formula.toString());
+					allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.NoDeadProcesses));
 					if (((StartEvent) ev).isInitialPlace()) {
 						// put token on initial place
 						processNet.getMarking().put(p, 1);
 					}
 				}
-			} else {
-				processNet.addEdge(pPrime, t);
-			}
-
-			// add new pPrime if not last element
-			if (iter.hasNext()) {
+			} else if (iter.hasNext()){
 				pPrime = new Place(INTERNAL_PLACE + ev.getLabel());
 				processNet.addPlace(pPrime);
-				processNet.addEdge(t, pPrime);
-			} else {
-				// TODO: Last element, necessary for lazy termination
-			}
+				if (ev instanceof IntermediateCatchingEvent) {
+					processNet.addEdge(pPrime, t);
+						
+				}else if(ev instanceof IntermediateThrowingEvent) {
+					processNet.addEdge(t, pPrime);
+				}
+				
+												
+			}else { // for end event
+				if (ev instanceof EndEvent) {
+					formula.append(" AND "+pCheck.getLabel() + " > 0");
+					terminatingProcessFormulae.add(formula.toString());
+				}
+			} 
+
+			// add new pPrime if not last element
+//			if (iter.hasNext()) {
+//				pPrime = new Place(INTERNAL_PLACE + ev.getLabel());
+//				processNet.addPlace(pPrime);
+//				processNet.addEdge(t, pPrime);
+//			} else {
+//				// TODO: Last element, necessary for lazy termination
+//			}
 		}
-		System.out.println(" -- State predicate to check dead process: "
+		System.out.println(" -- State predicate to check for terminating process: "
 				+ formula);
-		deadProcessFormulae.add(formula.toString());
-		allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.NoDeadProcesses));
+		
+		//allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.NoDeadProcesses));
 		return processNet;
 	}
 
