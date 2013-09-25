@@ -269,7 +269,7 @@ public class CorrectnessChecker {
 			}
 			
 			
-		} catch (InterruptedException | IOException  e) {
+		} catch (InterruptedException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

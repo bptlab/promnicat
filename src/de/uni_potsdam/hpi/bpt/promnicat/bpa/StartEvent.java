@@ -38,7 +38,7 @@ public class StartEvent extends ReceivingEvent {
 	 */
 	public StartEvent(int bpid, String label) {
 		super(bpid, label);
-		this.type = ReceivingEvent.EventType.STARTEVENT;
+		this.type = StartEvent.EventType.STARTEVENT;
 	}
 	
 	/**
@@ -46,9 +46,11 @@ public class StartEvent extends ReceivingEvent {
 	 */
 	public StartEvent(String label) {
 		super(label);
+		this.type = StartEvent.EventType.STARTEVENT;
 	}
 
 	public EventType getType() {
+		this.type = StartEvent.EventType.STARTEVENT;
 		return this.type;
 	}
 	

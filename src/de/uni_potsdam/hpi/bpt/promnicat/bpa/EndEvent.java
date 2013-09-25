@@ -50,9 +50,11 @@ public class EndEvent extends SendingEvent {
 	 */
 	public EndEvent(String label) {
 		super(label);
+		this.type = EndEvent.EventType.ENDEVENT;
 	}
 
 	public EventType getType() {
+		this.type = EndEvent.EventType.ENDEVENT;
 		return this.type;
 	}
 	

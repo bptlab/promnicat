@@ -52,7 +52,7 @@ public class BPATransformer {
 	private List<String> livelockFormulae = new ArrayList<String>();
 	private StringBuilder terminatingFormula = new StringBuilder("FORMULA EXPATH EVENTUALLY ");
 	private List<Formula> allFormulae = new ArrayList<Formula>(); 
-
+	private StringBuilder lazyTerminatingFormula = new StringBuilder("FORMULA EXPATH EVENTUALLY ");
 	/**
 	 * TODO: Should I take a strategy to allow different types of
 	 * transformations?
@@ -108,6 +108,49 @@ public class BPATransformer {
 		System.out.println("|= Formula for terminating run: "
 				+ terminatingFormula);
 		allFormulae.add(new Formula(terminatingFormula.toString(), CorrectnessCriteria.Termination));
+		
+		//construct lazy termination formula
+		
+		lazyTerminatingFormula.append("( ");
+		Iterator<String> iterList = terminatingProcessFormulae.listIterator(); 
+		while (iterList.hasNext()) {
+			String nextPart = iterList.next().toString();
+			System.out.println(nextPart);
+			nextPart = nextPart.replaceAll("\\bFORMULA\\b","");
+			System.out.println("after regex: "+nextPart);
+				lazyTerminatingFormula.append("(( "+nextPart+" ) OR ( "+nextPart.replaceAll(">","=")+" )) AND ");	
+					
+		}
+		
+		lazyTerminatingFormula.append("NOT (");
+		Iterator<String> iterList2 = terminatingProcessFormulae.listIterator(); 
+		while (iterList2.hasNext()) {
+			String nextPart = iterList2.next().toString();
+			System.out.println(nextPart);
+			nextPart = nextPart.replace("FORMULA","");
+			System.out.println("This is the string: "+nextPart);
+				lazyTerminatingFormula.append("( "+nextPart.toString().replaceAll(">","=")+" ) AND ");	
+			
+		}
+		end = lazyTerminatingFormula.length();
+		lazyTerminatingFormula.delete(end - 4, end);
+		lazyTerminatingFormula.append(") AND (");
+		for (Place p : bpaNet.getPlaces()) {
+			if (p.getLabel().contains(CHECK_START_PLACE) || p.getLabel().contains(CHECK_END_PLACE) ) {
+				
+			}else{
+			lazyTerminatingFormula
+					.append( bpaNet.getDirectSuccessors(p)
+									.isEmpty() ? p.getLabel()+" > 0 AND " :"");
+			}
+		}
+		end = lazyTerminatingFormula.length();
+		lazyTerminatingFormula.delete(end - 4, end);
+		lazyTerminatingFormula.append("))");
+		System.out.println("|= Formula for lazy terminating run: "
+				+ lazyTerminatingFormula);
+		allFormulae.add(new Formula(lazyTerminatingFormula.toString(), CorrectnessCriteria.LazyTermination));
+		//construction of lazy terminating formula finished
 		
 		// construct liveness stateprop for each transition, livelock formula
 		StringBuilder livelockFormula = new StringBuilder(256);
@@ -178,13 +221,17 @@ public class BPATransformer {
 			// determine arc direction between p and t
 			if (ev instanceof SendingEvent) {
 				processNet.addEdge(t, p);
-				if(ev instanceof StartEvent){
+				
+				if(ev.getType().equals(Event.EventType.ENDEVENT)){
+					System.out.println(" Added edge : "+t.getLabel()+" place "+pCheck.getLabel());
 					processNet.addEdge(t, pCheck);
 				}
 			} else if (ev instanceof ReceivingEvent) {
 				processNet.addEdge(p, t);
 				// if (!first) formula.append(p.getLabel() + " = 0 AND ");
-				if(ev instanceof EndEvent){
+				System.out.println(ev.getType());
+				if(ev.getType().equals(Event.EventType.STARTEVENT)){
+					System.out.println(" Added edge place "+pCheck.getLabel()+" transition "+t.getLabel());
 					processNet.addEdge(t, pCheck);
 				}	
 			}
@@ -215,7 +262,7 @@ public class BPATransformer {
 												
 			}else { // for end event
 				if (ev instanceof EndEvent) {
-					formula.append(" AND "+pCheck.getLabel() + " > 0");
+					formula.append("AND "+pCheck.getLabel()+" > 0");
 					terminatingProcessFormulae.add(formula.toString());
 				}
 			} 
@@ -229,6 +276,9 @@ public class BPATransformer {
 //				// TODO: Last element, necessary for lazy termination
 //			}
 		}
+		
+		
+		
 		System.out.println(" -- State predicate to check for terminating process: "
 				+ formula);
 		
@@ -264,6 +314,8 @@ public class BPATransformer {
 				composedNet.getMarking().putAll(((NetSystem) pn).getMarking());
 			}
 		}
+			
+		
 		return composedNet;
 	}
 
@@ -575,6 +627,11 @@ public class BPATransformer {
 	protected List<String> getTerminatingFormula() {
 		List<String> result = new ArrayList<String>();
 		result.add(terminatingFormula.toString()); 
+		return result;
+	}
+	
+	protected String getLazyTerminatingFormula() {
+		String result = lazyTerminatingFormula.toString(); 
 		return result;
 	}
 

@@ -3,6 +3,7 @@
  */
 package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.logging.Logger;
 
@@ -10,6 +11,8 @@ import de.uni_potsdam.hpi.bpt.promnicat.analysisModules.ConnectedEPC;
 import de.uni_potsdam.hpi.bpt.promnicat.bpa.Event.EventType;
 
 import java.util.*;
+
+import org.jbpt.petri.NetSystem;
 
 import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 /**
@@ -25,27 +28,46 @@ public class test {
 	private static final File workDir = new File(System.getenv("userprofile")
 			+File.separator+	 ".bpa");
 	public static void main(String[] args) throws Exception {
-		String param = workDir+File.separator+"lazy-terminating-example.net";
-		File testfile = new File(workDir+File.separator+"lazy-terminating-example.net");
-		Formula formulae = new Formula(workDir+File.separator +"lazy-terminating-example.task", CorrectnessCriteria.NoDeadProcesses);
-		List<Formula> list = new ArrayList(); 
-				
-				list.add(formulae);
 		
-		CorrectnessChecker checker = new CorrectnessChecker(testfile, list);
+		
+		BPA bpa = BPAExamples.complexBPA();
+		new BPATransformer().transform(bpa);
+		BPATransformer trans = new BPATransformer();
+		NetSystem pns = trans.transform(bpa);
+		pns.setName(bpa.getName() != null ? bpa.getName() : "Testnetz");
+		
+		File netFile = new File(workDir+File.separator+ pns.getName() +"Testnetz.net");
+		FileWriter fw;
+		try {
+			fw = new FileWriter(netFile);
+			fw.write(LolaNetSerializer.serialize(pns));
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		
+		
+		List<String> results = new ArrayList<String>();
+		String param = workDir+File.separator+"Testnetz.net";
+		File testfile = new File(workDir+File.separator+"Testnetz.net");
+		Formula testFormula =  new Formula("", CorrectnessCriteria.LazyTermination);
+		File task = new File(workDir+File.separator+"lazyTermination.task");
+		
+		testFormula.setFilepath(task);
+		List<Formula> formula = new ArrayList<Formula>();
+		
+		formula.add(testFormula);
+		CorrectnessChecker checker = new CorrectnessChecker(testfile,formula);
+		
+		
+		
+		
 		//ArrayList<String> resultss = checker.checkDeadlock(param);
 		//System.out.println(resultss);
 		
-		//String param3 = workDir+File.separator+"terminatingRun1.task";
-		ArrayList<String> results = new ArrayList<String>();
-		ArrayList<String> deadProResult = new ArrayList<String>();
-		 ArrayList<String> liveTransResults = new ArrayList<String>();
-		 ArrayList<String> terminRunResults = new ArrayList<String>();
-		String taskfile = "";
-		File[] files = workDir.listFiles();
-		String file = workDir+File.separator+"LazyTermCheck.net";
-		String task = workDir+File.separator+"LazyTerminationCheck.task";
-		results = checker.checkModel(file, task);
+				
+		results = checker.checkModel(testfile.getPath(),task.getPath());
 		System.out.println(results.size());
 		Iterator<String> iter = results.iterator();
 		int i = 1;
