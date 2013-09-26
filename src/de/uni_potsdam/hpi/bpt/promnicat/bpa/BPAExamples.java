@@ -57,9 +57,9 @@ public class BPAExamples {
 //		e4.setPostset(Arrays.asList(e6));
 //		e6.setPreset(Arrays.asList(e4));
 		
-		BusinessProcess p1 = new BusinessProcess(Arrays.asList(e2,e4,e3), "P1");
+		BusinessProcess p1 = new BusinessProcess(Arrays.asList(e2,e3,e4), "P1");
 		BusinessProcess p2 = new BusinessProcess(Arrays.asList(e0, e1),"P2");
-		BusinessProcess p3 = new BusinessProcess(Arrays.asList(e5, e6, e9),"P3");
+		BusinessProcess p3 = new BusinessProcess(Arrays.asList(e5, e6, e9,e10),"P3");
 		BusinessProcess p4 = new BusinessProcess(Arrays.asList(e7, e8),"P4");
 		BPA bpa = new BPA();
 		bpa.setProcesslist(Arrays.asList(p1,p2,p3,p4));

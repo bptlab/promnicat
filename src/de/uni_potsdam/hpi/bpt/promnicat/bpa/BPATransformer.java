@@ -191,24 +191,29 @@ public class BPATransformer {
 	private PetriNet transform(BusinessProcess process) {
 		NetSystem processNet = new NetSystem();
 		Boolean first = true;
-		Place p, pPrime, pCheck = null;
+		Place p, pIntern, pHelp, pPrime, pCheck = null;
 		Transition t;
 		StringBuilder formula = new StringBuilder("FORMULA ");
+		pHelp = new Place(INTERNAL_PLACE);
 		// iterate over events, construct process' net
 		Iterator<Event> iter = process.getEvents().iterator();
 		while (iter.hasNext()) {
 			Event ev = iter.next();
 			p = new Place(NORMAL_PLACE + ev.getLabel());
+			pIntern = new Place(INTERNAL_PLACE + ev.getLabel());
+						
 			t = new Transition("t_" + ev.getLabel());
 			processNet.addTransition(t);
 			processNet.addPlace(p);
 			
 			if (ev instanceof StartEvent) {
 				pCheck = new Place(CHECK_START_PLACE + ev.getLabel());
+				
 				System.out.println(" -- Handling event " + ev.getLabel()
-						+ ", created place " + p.getName() + " and test place "+pCheck.getLabel());
+						+ ", created places " + p.getName() + " and test place "+pCheck.getLabel());
 				
 				processNet.addPlace(pCheck);
+				
 			} else if(ev instanceof EndEvent){
 				pCheck = new Place(CHECK_END_PLACE + ev.getLabel());
 				System.out.println(" -- Handling event " + ev.getLabel()
@@ -221,19 +226,30 @@ public class BPATransformer {
 			// determine arc direction between p and t
 			if (ev instanceof SendingEvent) {
 				processNet.addEdge(t, p);
-				
+				processNet.addEdge(pHelp, t);
 				if(ev.getType().equals(Event.EventType.ENDEVENT)){
 					System.out.println(" Added edge : "+t.getLabel()+" place "+pCheck.getLabel());
 					processNet.addEdge(t, pCheck);
+					
+				}else {
+					processNet.addPlace(pIntern);
+					processNet.addEdge(t, pIntern);
 				}
+				pHelp = pIntern;
 			} else if (ev instanceof ReceivingEvent) {
 				processNet.addEdge(p, t);
+				processNet.addPlace(pIntern);
+				processNet.addEdge(t, pIntern);
 				// if (!first) formula.append(p.getLabel() + " = 0 AND ");
 				System.out.println(ev.getType());
 				if(ev.getType().equals(Event.EventType.STARTEVENT)){
 					System.out.println(" Added edge place "+pCheck.getLabel()+" transition "+t.getLabel());
 					processNet.addEdge(t, pCheck);
-				}	
+					
+				}else {
+					processNet.addEdge(pHelp, t);
+				}
+				pHelp = pIntern;
 			}
 
 			// handle start event, no pPrime exists for it
@@ -250,14 +266,14 @@ public class BPATransformer {
 					}
 				}
 			} else if (iter.hasNext()){
-				pPrime = new Place(INTERNAL_PLACE + ev.getLabel());
+				/*//pPrime = new Place(INTERNAL_PLACE + ev.getLabel());
 				processNet.addPlace(pPrime);
 				if (ev instanceof IntermediateCatchingEvent) {
 					processNet.addEdge(pPrime, t);
 						
 				}else if(ev instanceof IntermediateThrowingEvent) {
 					processNet.addEdge(t, pPrime);
-				}
+				}*/
 				
 												
 			}else { // for end event
