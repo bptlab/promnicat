@@ -122,7 +122,7 @@ public class BPATransformer {
 					
 		}
 		
-		lazyTerminatingFormula.append("NOT (");
+		lazyTerminatingFormula.append("( NOT (");
 		Iterator<String> iterList2 = terminatingProcessFormulae.listIterator(); 
 		while (iterList2.hasNext()) {
 			String nextPart = iterList2.next().toString();
@@ -134,7 +134,8 @@ public class BPATransformer {
 		}
 		end = lazyTerminatingFormula.length();
 		lazyTerminatingFormula.delete(end - 4, end);
-		lazyTerminatingFormula.append(") AND (");
+		lazyTerminatingFormula.append(")) AND (");
+		// adding final marking
 		for (Place p : bpaNet.getPlaces()) {
 			if (p.getLabel().contains(CHECK_START_PLACE) || p.getLabel().contains(CHECK_END_PLACE) ) {
 				
@@ -553,7 +554,7 @@ public class BPATransformer {
 			inPlace.setLabel(INTERMEDIARY_PLACE + eventLabel);
 		}
 		splitter.addPlace(inPlace);
-		Transition t = new Transition("t_" + eventLabel);
+		Transition t = new Transition("t_split_" + eventLabel);
 		splitter.addTransition(t);
 		splitter.addFlow(inPlace, t);
 		Place tmpPlace;

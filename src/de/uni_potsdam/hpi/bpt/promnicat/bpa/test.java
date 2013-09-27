@@ -31,6 +31,7 @@ public class test {
 		
 		
 		BPA bpa = BPAExamples.complexBPA();
+		//BPA bpa = BPAExamples.simpleBPA();
 		new BPATransformer().transform(bpa);
 		BPATransformer trans = new BPATransformer();
 		NetSystem pns = trans.transform(bpa);
