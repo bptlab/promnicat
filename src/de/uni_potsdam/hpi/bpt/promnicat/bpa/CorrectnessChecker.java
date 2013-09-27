@@ -4,7 +4,6 @@
 package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 
 import java.io.BufferedReader;
-
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.File;
@@ -40,6 +39,7 @@ public class CorrectnessChecker {
 	private static final String LIVELOCK_FILENAME = "liveTransition";
 	private static final String DEADPROCESS_FILENAME = "deadProcess";
 	private static final String TERMINATION_FILENAME = "terminatingRun";
+	private static final Object LAZYTERMINATION_FILENAME = "lazyTerminatingRun";
 	
 	static {
 		try {
@@ -64,6 +64,7 @@ public class CorrectnessChecker {
 	private int liveLockCounter = 0;
 	private int deadProcessCounter = 0;
 	private int terminationCounter = 0;
+	private int lazyTerminationCounter = 0;
 	private Runtime rt;
 	
 	public enum CheckerType{
@@ -437,7 +438,7 @@ public class CorrectnessChecker {
 		CheckerType whichLola;
 		List<String> additionalParams = new ArrayList<String>();
 		switch (formula.getType()) {
-		case Termination:
+		case LazyTermination : case Termination:
 			whichLola = CheckerType.LOLAMODELCHECKING;
 			additionalParams.add("-P");
 			break;
@@ -447,6 +448,7 @@ public class CorrectnessChecker {
 		case NoLiveLocks:
 			whichLola = CheckerType.LOLALIVEPROP;
 			break;
+		
 		default: 
 			whichLola = CheckerType.LOLA;
 		}
@@ -477,6 +479,11 @@ public class CorrectnessChecker {
 			liveLockCounter++;
 			taskFileName.append(LIVELOCK_FILENAME);
 			taskFileName.append(liveLockCounter);
+			break;
+		case LazyTermination:
+			lazyTerminationCounter++;
+			taskFileName.append(LAZYTERMINATION_FILENAME);
+			taskFileName.append(lazyTerminationCounter);
 			break;
 		}
 		taskFileName.append(".task");

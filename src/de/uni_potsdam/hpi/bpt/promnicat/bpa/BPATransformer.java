@@ -647,8 +647,10 @@ public class BPATransformer {
 		return result;
 	}
 	
-	protected String getLazyTerminatingFormula() {
-		String result = lazyTerminatingFormula.toString(); 
+	protected List<String> getLazyTerminatingFormula() {
+		List<String> result = new ArrayList<String>();
+		result.add(lazyTerminatingFormula.toString()); 
+		//String result = lazyTerminatingFormula.toString(); 
 		return result;
 	}
 
