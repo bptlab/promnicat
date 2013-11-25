@@ -38,7 +38,7 @@ import de.uni_potsdam.hpi.bpt.ai.diagram.Shape;
  * 
  */
 public class BPAImporter {
-
+	public static Mapper mapper = Mapper.getInstance();
 	public static void main(String[] args) {
 
 		Path jsonPath = Paths.get(System.getenv("userprofile") + File.separator
@@ -47,9 +47,20 @@ public class BPAImporter {
 		fromXML(jsonPath.toFile());
 	}
 
+	
+	
+	public static BPA fromJson(JSONObject json) {
+		BPA bpa = null;
+		bpa = BPAImporter.parseDiagram(json); 
+		
+		return bpa;
+		
+	}
+	
 	public static BPA fromXML(File toImport) {
 		BPA bpa = null;
 		try {
+			
 			// DOMBuilder in-memory, ok because DOM is small
 			DocumentBuilder builder = DocumentBuilderFactory.newInstance()
 					.newDocumentBuilder();
@@ -61,7 +72,33 @@ public class BPAImporter {
 			}
 			org.w3c.dom.Node first = json.item(0);
 			JSONObject jsonBPA = new JSONObject(first.getTextContent());
-
+			bpa = BPAImporter.parseDiagram(jsonBPA);
+		}catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SAXException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParserConfigurationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DOMException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		return bpa;	
+		
+		}
+	
+		public static BPA parseDiagram(JSONObject jsonBPA){
+			BPA bpa =null;
+			try{
 			// let bpmai parse json to diagram
 			Diagram diag = DiagramBuilder.parseJson(jsonBPA);
 			List<Shape> shapes = diag.getShapes();
@@ -81,7 +118,8 @@ public class BPAImporter {
 						System.out.println(multiplicity[i]);
 					}
 					
-					Event ev = createEvent(shapeType, name);
+					//Event ev = createEvent(shapeType, name);
+					Event ev = createEvent(shapeType, resourceId);
 					ev.setMultiplicity(multiplicity);
 					eventMapper.put(resourceId, ev);
 				}
@@ -119,6 +157,7 @@ public class BPAImporter {
 //						System.out.println(child.getUpperLeft().getX());
 						String childId = child.getResourceId();
 						eventIds.add(childId);
+						mapper.addEventToProcess(childId, resourceId);
 					}
 					processEventMapper.put(bp, eventIds);
 					System.out.println("BP Events: " + eventIds);
@@ -162,18 +201,6 @@ public class BPAImporter {
 			bpa.setOrganisation(diag.getProperty("author"));
 			bpa.setProcesslist(new ArrayList<BusinessProcess>(processEventMapper.keySet()));
 			
-		} catch (FileNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SAXException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ParserConfigurationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (DOMException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

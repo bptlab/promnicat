@@ -11,11 +11,13 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.swing.JFrame;
 
 import org.jbpt.petri.NetSystem;
+import org.json.JSONObject;
 
 public class BPAAnalyzer {
 
@@ -92,14 +94,49 @@ public class BPAAnalyzer {
 			//writeTaskFiles(trans.getTerminatingFormula(), "terminatingRun");
 			//File netFile = new File(workDir, "bpa-test.net");
 			
-			CorrectnessChecker checker = new CorrectnessChecker(netFile, trans.getAllFormulae().subList(0, 1));
+			CorrectnessChecker checker = new CorrectnessChecker(netFile, trans.getAllFormulae());
 			checker.checkBPA();
+			
+			System.out.println(checker.getErrors());
+			
 			
 			//HashMap <String, HashMap<Integer, ArrayList<String>>> completeResults = checker.analyseAllProperties(pnmlOutput.getPath().replaceAll(".pnml", ".net"));
 			//DisplayAnalysisResults test = new DisplayAnalysisResults(completeResults);
 			//test.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		}
 
+	}
+	
+	public static Map<String, String> analyseBPA(JSONObject json){
+		
+		Map<String, String> errors = new HashMap<String,String>();
+		BPA bpa = BPAImporter.fromJson(json);
+		
+		// transform it
+		BPATransformer trans = new BPATransformer();
+		NetSystem pns = trans.transform(bpa);
+		pns.setName(bpa.getName() != null ? bpa.getName() : "Testnetz");
+		
+		File netFile = new File(workDir+File.separator+ pns.getName() +".net");
+		FileWriter fw;
+		try {
+			fw = new FileWriter(netFile);
+			fw.write(LolaNetSerializer.serialize(pns));
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		
+		CorrectnessChecker checker = new CorrectnessChecker(netFile, trans.getAllFormulae());
+		checker.checkBPA();
+		
+		
+		errors = checker.getErrors();
+		
+		return errors;
+		
+		
 	}
 
 	private static Boolean findInputFile(String[] args) {

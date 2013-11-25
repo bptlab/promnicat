@@ -10,10 +10,16 @@ private String name = "";
 private String organisation = "";
 private List<BusinessProcess> processlist = new ArrayList<BusinessProcess>();
 private Relation relations = new Relation();
-
+private String shapeId = "canvas";
 
 
 public BPA() {
+	this.shapeId = "canvas";
+}
+
+public BPA(String canvasId) {
+	
+	this.shapeId = canvasId;
 }
 
 public BPA(String name, String organisation, List<BusinessProcess> processlist,
@@ -50,12 +56,22 @@ public List<Event> getEvents() {
 	return events;
 }
 
+
+
 public List<BusinessProcess> getAllProcesses() {
 	return processlist;
 }
 
 public void setProcesslist(List<BusinessProcess> processlist) {
 	this.processlist = processlist;
+}
+
+public String getCanvasId() {
+	return shapeId;
+}
+
+public void setCanvasId(String id) {
+	this.shapeId = id;
 }
 
 public String getName() {

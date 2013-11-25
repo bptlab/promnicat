@@ -30,7 +30,7 @@ import weka.classifiers.bayes.net.search.fixed.FromFile;
  *
  */
 public class CorrectnessChecker {
-
+	
 	private final static File workDir = new File(System.getenv("userprofile")
 			+ File.separator + ".bpa");; 
 	private final static String renewPath;
@@ -40,6 +40,16 @@ public class CorrectnessChecker {
 	private static final String DEADPROCESS_FILENAME = "deadProcess";
 	private static final String TERMINATION_FILENAME = "terminatingRun";
 	private static final Object LAZYTERMINATION_FILENAME = "lazyTerminatingRun";
+	private static final Object PROCESSSTERMINATION_FILENAME = "terminatingProcess";
+	private Map<String, String> errors = new HashMap<String, String>();
+	
+	// RESULTS
+	protected static final String DEAD_PROCESS = "DEADPROCESS";
+	protected static final String LIVELOCK_PROCESS = "LIVELOCKPROCESS";
+	protected static final String TERMINATING_RUN = "TERMINATINGRUN";
+	protected static final String LAZY_TERMINATING_RUN = "LAZYTERMINATINGRUN";
+	protected static final String DEADLOCK = "DEADLOCK";
+	protected static final String NOT_TERMINATING_PROCESS = "NOTTERMINATINGPROCESS";
 	
 	static {
 		try {
@@ -59,12 +69,15 @@ public class CorrectnessChecker {
 	private final File toCheck;
 	private final List<Formula> formulae;
 	
+	
+	
 	Enum<CheckerType> lola;
 	private ArrayList<String> params = new ArrayList<String>();
 	private int liveLockCounter = 0;
 	private int deadProcessCounter = 0;
 	private int terminationCounter = 0;
 	private int lazyTerminationCounter = 0;
+	private int terminatingProcessCounter = 0;
 	private Runtime rt;
 	
 	public enum CheckerType{
@@ -275,6 +288,48 @@ public class CorrectnessChecker {
 			e.printStackTrace();
 		}
 		//Process proc = createProcess(params); 		
+		//System.out.println(result);
+		System.out.println(result.get(0).substring(8));
+		/*System.out.println(result.get(0).substring(9));*/
+		
+		if(result.get(0).substring(8).equals("0")){
+			System.out.println("In result set 0");
+			switch (formula.getType()){
+			case NoLiveLocks:
+				errors.put(formula.getid(),LIVELOCK_PROCESS);
+				break;
+			default:
+				break;
+				
+			}
+		}
+		
+		
+		if(result.get(0).substring(8).equals("1")){
+			//System.out.println("In result set 1");
+			switch (formula.getType()){
+			case NoDeadProcesses:
+				errors.put(formula.getid(),DEAD_PROCESS);
+				break;	
+			case TerminatingProcess:
+				
+				errors.put(formula.getid(),NOT_TERMINATING_PROCESS);
+				System.out.println("In terminating process"+errors);
+			case LazyTermination :
+				errors.put(formula.getid(),LAZY_TERMINATING_RUN);
+				break;
+			case Termination:
+				errors.put(formula.getid(),TERMINATING_RUN);
+				break;
+			default:
+				break;
+		}
+		}
+		
+		
+		//prepare Error Set for Dispay in Browser
+		
+		
 		return result;
 	}
 
@@ -313,6 +368,7 @@ public class CorrectnessChecker {
 		// Print out Result for Deadlock
 		if(results.get(2).equals("0")){
 			System.out.println(param+" has a deadlock");
+			
 		}
 		else if(results.get(2).equals("1")){
 			System.out.println(param+" has no deadlock");
@@ -443,10 +499,13 @@ public class CorrectnessChecker {
 			additionalParams.add("-P");
 			break;
 		case NoDeadProcesses:
-			whichLola = CheckerType.LOLAREACHMARK;
+			whichLola = CheckerType.LOLASTATEPREDICTE;
 			break;
 		case NoLiveLocks:
 			whichLola = CheckerType.LOLALIVEPROP;
+			break;
+		case TerminatingProcess:
+			whichLola = CheckerType.LOLASTATEPREDICTE;
 			break;
 		
 		default: 
@@ -475,6 +534,11 @@ public class CorrectnessChecker {
 			taskFileName.append(DEADPROCESS_FILENAME);
 			taskFileName.append(deadProcessCounter);
 			break;
+		case TerminatingProcess:
+			terminatingProcessCounter++;
+			taskFileName.append(PROCESSSTERMINATION_FILENAME);
+			taskFileName.append(terminatingProcessCounter);
+			break;	
 		case NoLiveLocks:
 			liveLockCounter++;
 			taskFileName.append(LIVELOCK_FILENAME);
@@ -537,15 +601,16 @@ public class CorrectnessChecker {
 //			}
 //		}
 
-
+	public Map<String, String> getErrors(){
+		return errors;
+	}
 
 	public void checkBPA() {
-		List<String> result = new ArrayList<String>();
+		
 		for (Formula formula : formulae) {
-			 result = checkFormula(formula);
-			 for (String string : result) {
-				 System.out.println(string);
-			 }
+			 checkFormula(formula);
+			 
 		}
+		
 	}
 }

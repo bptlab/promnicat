@@ -9,17 +9,28 @@ public class BusinessProcess {
 	List<Event> events = new ArrayList<Event>();
 	private String name;
 	final private UUID id;
+	private String shapeId;
 	
 	public BusinessProcess() {
 		id = UUID.randomUUID();
 	}
 	
-	public BusinessProcess(String uuid) {
-		id = UUID.fromString(uuid.substring(4));
+	
+	
+	public BusinessProcess(String resourceId) {
+		 this.shapeId = resourceId;
+		 id = UUID.randomUUID();
 	}
 	
 	public BusinessProcess(List<Event> events,String name) {
 		id = UUID.randomUUID();
+		this.events = events;
+		this.name = name;
+	}
+	
+	public BusinessProcess(String resourceId, List<Event> events,String name) {
+		id = UUID.randomUUID();
+		this.shapeId = resourceId;
 		this.events = events;
 		this.name = name;
 	}
@@ -48,7 +59,14 @@ public class BusinessProcess {
 	public String getName() {
 		return name;
 	}
-
+	
+	public UUID getUid() {
+		return id;
+	}
+	
+	public String getShapeId() {
+		return shapeId;
+	}
 	public void setName(String name) {
 		this.name = name;
 	}

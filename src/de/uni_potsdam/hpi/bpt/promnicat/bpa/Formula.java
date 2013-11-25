@@ -11,10 +11,21 @@ public class Formula {
 	private Boolean hasFile = Boolean.FALSE;
 	private File filepath;
 	private final CorrectnessCriteria type;
+	private String id;
 	
 	public Formula(String content, CorrectnessCriteria type) {
 		this.content = content;
 		this.type = type;
+	}
+	
+	public Formula(String content, CorrectnessCriteria type, String processId) {
+		this.content = content;
+		this.type = type;
+		this.id = processId;
+	}
+	
+	public String getid() {
+		return id;
 	}
 	
 	public String getContent() {

@@ -34,8 +34,6 @@ import org.omg.CosNaming.NamingContextPackage.NotEmpty;
  * Transforms a {@link BPA} (subset) into a Petri Net.
  * Assumes that all events of the BPA are unique. 
  * @author Marcin.Hewelt
- */
-/**
  * @author rami.eidsabbagh
  * 
  */
@@ -53,6 +51,8 @@ public class BPATransformer {
 	private StringBuilder terminatingFormula = new StringBuilder("FORMULA EXPATH EVENTUALLY ");
 	private List<Formula> allFormulae = new ArrayList<Formula>(); 
 	private StringBuilder lazyTerminatingFormula = new StringBuilder("FORMULA EXPATH EVENTUALLY ");
+	
+	private static Mapper mapper = Mapper.getInstance();
 	/**
 	 * TODO: Should I take a strategy to allow different types of
 	 * transformations?
@@ -67,12 +67,13 @@ public class BPATransformer {
 	 * @return
 	 */
 	public NetSystem transform(BPA bpa) {
+		
 		System.out.println("Starting transformation of BPA " + bpa.getName());
 		List<BusinessProcess> processes = bpa.getAllProcesses();
 		Map<BusinessProcess, PetriNet> resultingNets = new HashMap<BusinessProcess, PetriNet>();
 		Map<Event, List<PetriNet>> intermediaryNets = new HashMap<Event, List<PetriNet>>();
 		NetSystem bpaNet = new NetSystem();
-
+		
 		for (BusinessProcess process : processes) {
 			System.out.println("|- Transforming process " + process.getName());
 			PetriNet transformedProcess = transform(process);
@@ -107,7 +108,7 @@ public class BPATransformer {
 		terminatingFormula.delete(end - 4, end);
 		System.out.println("|= Formula for terminating run: "
 				+ terminatingFormula);
-		allFormulae.add(new Formula(terminatingFormula.toString(), CorrectnessCriteria.Termination));
+		allFormulae.add(new Formula(terminatingFormula.toString(), CorrectnessCriteria.Termination,bpa.getCanvasId()));
 		
 		//construct lazy termination formula
 		
@@ -150,12 +151,12 @@ public class BPATransformer {
 		lazyTerminatingFormula.append("))");
 		System.out.println("|= Formula for lazy terminating run: "
 				+ lazyTerminatingFormula);
-		allFormulae.add(new Formula(lazyTerminatingFormula.toString(), CorrectnessCriteria.LazyTermination));
+		allFormulae.add(new Formula(lazyTerminatingFormula.toString(), CorrectnessCriteria.LazyTermination,bpa.getCanvasId()));
 		//construction of lazy terminating formula finished
 		
 		// construct liveness stateprop for each transition, livelock formula
-		StringBuilder livelockFormula = new StringBuilder(256);
-		for (Transition t : bpaNet.getTransitions()) {
+		//StringBuilder livelockFormula = new StringBuilder(256);
+		/*for (Transition t : bpaNet.getTransitions()) {
 			livelockFormula.append("FORMULA ");
 			Collection<Flow> incomingEdges = bpaNet.getIncomingEdges(t);
 			for (Flow flow : incomingEdges) {
@@ -172,14 +173,15 @@ public class BPATransformer {
 				}
 				livelockFormula.append(flow.getSource().getLabel() + " >= " + x + " AND ");
 			}
+			
 			// delete last "AND "
 			end = livelockFormula.length();
 			livelockFormula.delete(end-4, end);
 			System.out.println(" --- Formula for transition " + t.getLabel() + ": " + livelockFormula);
 			livelockFormulae.add(livelockFormula.toString());
-			allFormulae.add(new Formula(livelockFormula.toString(), CorrectnessCriteria.NoLiveLocks));
+			allFormulae.add(new Formula(livelockFormula.toString(), CorrectnessCriteria.NoLiveLocks ));
 			livelockFormula.setLength(0); // reset StringBuilder
-		}
+		}*/
 		return bpaNet;
 	}
 
@@ -195,6 +197,9 @@ public class BPATransformer {
 		Place p, pIntern, pHelp, pPrime, pCheck = null;
 		Transition t;
 		StringBuilder formula = new StringBuilder("FORMULA ");
+		
+		StringBuilder formulaForLivelocks = new StringBuilder("FORMULA ");
+		String processId = process.getShapeId();
 		pHelp = new Place(INTERNAL_PLACE);
 		// iterate over events, construct process' net
 		Iterator<Event> iter = process.getEvents().iterator();
@@ -244,7 +249,7 @@ public class BPATransformer {
 				// if (!first) formula.append(p.getLabel() + " = 0 AND ");
 				System.out.println(ev.getType());
 				if(ev.getType().equals(Event.EventType.STARTEVENT)){
-					System.out.println(" Added edge place "+pCheck.getLabel()+" transition "+t.getLabel());
+					System.out.println(" Added edge place "+t.getLabel()+" transition "+pCheck.getLabel());
 					processNet.addEdge(t, pCheck);
 					
 				}else {
@@ -258,9 +263,16 @@ public class BPATransformer {
 				first = false;
 				if (ev instanceof StartEvent) {
 					// build CTL formula
+					
+					
 					formula.append(pCheck.getLabel() + " > 0 ");
+					
+					//terminatingProcess.append(pCheck.getLabel() + " > 0 ");
 					deadProcessFormulae.add(formula.toString());
-					allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.NoDeadProcesses));
+					allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.NoDeadProcesses, processId));
+					
+					formulaForLivelocks.append(p.getLabel() + " >= 1 ");
+					allFormulae.add(new Formula(formulaForLivelocks.toString(), CorrectnessCriteria.NoLiveLocks, processId ));
 					if (((StartEvent) ev).isInitialPlace()) {
 						// put token on initial place
 						processNet.getMarking().put(p, 1);
@@ -280,7 +292,9 @@ public class BPATransformer {
 			}else { // for end event
 				if (ev instanceof EndEvent) {
 					formula.append("AND "+pCheck.getLabel()+" > 0");
+					
 					terminatingProcessFormulae.add(formula.toString());
+					allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.TerminatingProcess, processId ));
 				}
 			} 
 
@@ -296,8 +310,7 @@ public class BPATransformer {
 		
 		
 		
-		System.out.println(" -- State predicate to check for terminating process: "
-				+ formula);
+		//System.out.println(" -- State predicate to check for terminating process: "+ formula);
 		
 		//allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.NoDeadProcesses));
 		return processNet;
