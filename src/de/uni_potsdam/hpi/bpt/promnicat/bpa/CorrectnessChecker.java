@@ -27,12 +27,13 @@ import weka.classifiers.bayes.net.search.fixed.FromFile;
 
 /**
  * @author rami.eidsabbagh
- *
+ * 
  */
 public class CorrectnessChecker {
-	
-	private final static File workDir = new File(System.getenv("userprofile")
-			+ File.separator + ".bpa");; 
+
+	// private final static File workDir = new File(System.getenv("userprofile")
+	// + File.separator + ".bpa");;
+	private static final File workDir = new File("C:/.bpa");
 	private final static String renewPath;
 	private final static String lolaPath;
 	private final static Properties configuration = new Properties();
@@ -41,8 +42,8 @@ public class CorrectnessChecker {
 	private static final String TERMINATION_FILENAME = "terminatingRun";
 	private static final Object LAZYTERMINATION_FILENAME = "lazyTerminatingRun";
 	private static final Object PROCESSSTERMINATION_FILENAME = "terminatingProcess";
-	private Map<String, String> errors = new HashMap<String, String>();
-	
+	private Map<String, ArrayList<String>> errors = new HashMap<String, ArrayList<String>>();
+
 	// RESULTS
 	protected static final String DEAD_PROCESS = "DEADPROCESS";
 	protected static final String LIVELOCK_PROCESS = "LIVELOCKPROCESS";
@@ -50,27 +51,26 @@ public class CorrectnessChecker {
 	protected static final String LAZY_TERMINATING_RUN = "LAZYTERMINATINGRUN";
 	protected static final String DEADLOCK = "DEADLOCK";
 	protected static final String NOT_TERMINATING_PROCESS = "NOTTERMINATINGPROCESS";
-	
+
 	static {
 		try {
-			configuration.load(new FileReader(new File(workDir,".properties")));
+			configuration
+					.load(new FileReader(new File(workDir, ".properties")));
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		renewPath = configuration.getProperty("renew.path");
-		lolaPath = configuration.getProperty("lola.path");	
+		lolaPath = configuration.getProperty("lola.path");
 	}
-	
+
 	/**
 	 * The lola net file this checker will check.
 	 */
 	private final File toCheck;
 	private final List<Formula> formulae;
-	
-	
-	
+
 	Enum<CheckerType> lola;
 	private ArrayList<String> params = new ArrayList<String>();
 	private int liveLockCounter = 0;
@@ -79,178 +79,190 @@ public class CorrectnessChecker {
 	private int lazyTerminationCounter = 0;
 	private int terminatingProcessCounter = 0;
 	private Runtime rt;
-	
-	public enum CheckerType{
-		LOLA("lola.exe"),
-		LOLABOUNDEDNET("lola-bounded-net.exe"),
-		LOLABOUNDEDPLACE("lola-bounded-place.exe"),
-		LOLADEADLOCK("lola-deadlock.exe"),
-		LOLADEADTRANSITION("lola-dead-transition.exe"),
-		LOLAHOMESTATE("lola-home-state.exe"),
-		LOLALIVEPROP("lola-liveprop.exe"),
-		LOLAMODELCHECKING("lola-model-checking.exe"),
-		LOLAREACHMARK("lola-reach-mark.exe"),
-		LOLASTATEPREDICTE("lola-state-predicate.exe");
-		
+
+	public enum CheckerType {
+		LOLA("lola.exe"), LOLABOUNDEDNET("lola-bounded-net.exe"), LOLABOUNDEDPLACE(
+				"lola-bounded-place.exe"), LOLADEADLOCK("lola-deadlock.exe"), LOLADEADTRANSITION(
+				"lola-dead-transition.exe"), LOLAHOMESTATE(
+				"lola-home-state.exe"), LOLALIVEPROP("lola-liveprop.exe"), LOLAMODELCHECKING(
+				"lola-model-checking.exe"), LOLAREACHMARK("lola-reach-mark.exe"), LOLASTATEPREDICTE(
+				"lola-state-predicate.exe");
+
 		private CheckerType(String lolacomp) {
 			this.lolacomp = lolacomp;
-			}
+		}
+
 		private final String lolacomp;
+
 		public String toString() {
 			return lolacomp;
 		}
-		
+
 	}
-	
+
 	/**
 	 * Create a new CorrctnessChecker to check a given net file.
-	 * @param netFile, the {@link File} to check.
+	 * 
+	 * @param netFile
+	 *            , the {@link File} to check.
 	 */
 	public CorrectnessChecker(File netFile, List<Formula> formulae) {
 		toCheck = netFile;
 		this.formulae = formulae;
-		rt = Runtime.getRuntime(); 
+		rt = Runtime.getRuntime();
 	}
-	
+
 	public static void main(String[] args) throws Exception {
 		File netFile = new File(workDir, "simpleNet.net");
-		Formula f = new Formula("FORMULA p >= 1", CorrectnessCriteria.NoLiveLocks);
-		CorrectnessChecker checker = new CorrectnessChecker(netFile, Arrays.asList(f));
+		Formula f = new Formula("FORMULA p >= 1",
+				CorrectnessCriteria.NoLiveLocks);
+		CorrectnessChecker checker = new CorrectnessChecker(netFile,
+				Arrays.asList(f));
 		File taskFile = checker.writeTaskFile(f);
-		List<String> result =  checker.checkModel(netFile.getAbsolutePath(), taskFile.toString());
-		//List<String> result = checker.checkFormula(f);
+		List<String> result = checker.checkModel(netFile.getAbsolutePath(),
+				taskFile.toString());
+		// List<String> result = checker.checkFormula(f);
 		for (String string : result) {
 			System.out.println(string);
 		}
 	}
-	
-	
-	
-	public HashMap<Integer, ArrayList<String>> checkForLivenessTransitions(String param, File directoryPath) throws Exception{
+
+	public HashMap<Integer, ArrayList<String>> checkForLivenessTransitions(
+			String param, File directoryPath) throws Exception {
 		File[] liveTransitionTasks = directoryPath.listFiles();
 		HashMap<Integer, ArrayList<String>> liveTransitions = new HashMap<Integer, ArrayList<String>>();
 		for (File file : liveTransitionTasks) {
-		 String taskfile = file.getPath();
-		 ArrayList<String> results = checkModel(param, taskfile);
-		 String line = readTaskContent(taskfile);
-		 String[] lines =  line.split(" ");
-		 if(lines[1].contains("intern")){
-			 			 
-			 if (lines.length > 5) {
-				 addStringToArrayList(liveTransitions, Integer.parseInt(results.get(2)),lines[1].substring(7)+" "+lines[5]);
-				 System.out.println("Live Transition if >5: "+lines[1].substring(7)+" "+lines[5]);
-			}else {
-			 addStringToArrayList(liveTransitions, Integer.parseInt(results.get(2)), lines[1].substring(7));
-		 //liveTransitions.put(Integer.parseInt(results.get(2)),lines[1].substring(7));
+			String taskfile = file.getPath();
+			ArrayList<String> results = checkModel(param, taskfile);
+			String line = readTaskContent(taskfile);
+			String[] lines = line.split(" ");
+			if (lines[1].contains("intern")) {
+
+				if (lines.length > 5) {
+					addStringToArrayList(liveTransitions,
+							Integer.parseInt(results.get(2)),
+							lines[1].substring(7) + " " + lines[5]);
+					System.out.println("Live Transition if >5: "
+							+ lines[1].substring(7) + " " + lines[5]);
+				} else {
+					addStringToArrayList(liveTransitions,
+							Integer.parseInt(results.get(2)),
+							lines[1].substring(7));
+					// liveTransitions.put(Integer.parseInt(results.get(2)),lines[1].substring(7));
+				}
+			} else {
+				if (lines.length > 5) {
+					addStringToArrayList(liveTransitions,
+							Integer.parseInt(results.get(2)), lines[1] + " "
+									+ lines[5]);
+				} else {
+					addStringToArrayList(liveTransitions,
+							Integer.parseInt(results.get(2)), lines[1]);
+					// liveTransitions.put(Integer.parseInt(results.get(2)),lines[1]);
+				}
 			}
-		 }else{
-			 if (lines.length > 5) {
-				 addStringToArrayList(liveTransitions, Integer.parseInt(results.get(2)),lines[1]+" "+lines[5]);
-			}else {
-			 addStringToArrayList(liveTransitions, Integer.parseInt(results.get(2)), lines[1]);
-			 //liveTransitions.put(Integer.parseInt(results.get(2)),lines[1]);
-			}
-		 }
 		}
-		return  liveTransitions;
+		return liveTransitions;
 	}
-	
-	public HashMap<Integer, ArrayList<String>> checkForDeadProcesses(String param, File directoryPath) throws Exception{
+
+	public HashMap<Integer, ArrayList<String>> checkForDeadProcesses(
+			String param, File directoryPath) throws Exception {
 		File[] deadProcessTasks = directoryPath.listFiles();
-		HashMap<Integer,ArrayList<String>> deadProcesses = new HashMap<Integer, ArrayList<String>>();
+		HashMap<Integer, ArrayList<String>> deadProcesses = new HashMap<Integer, ArrayList<String>>();
 		for (File file : deadProcessTasks) {
-		 String taskfile = file.getPath();
-		 ArrayList<String> results = checkModel(param, taskfile);
-		 String line = readTaskContent(taskfile);
-		 String[] lines =  line.split(" ");
-		 if(lines[1].contains("intern")){
-			 //deadProcesses.put(Integer.parseInt(results.get(2)),lines[1].substring(7));
-			 addStringToArrayList(deadProcesses, Integer.parseInt(results.get(2)), lines[1].substring(7));
-			 System.out.println("Dead Process if"+lines[1].substring(7)+" "+lines[5]);
-		 }else{
-			 addStringToArrayList(deadProcesses, Integer.parseInt(results.get(2)), lines[1]);
-			 //deadProcesses.put(Integer.parseInt(results.get(2)),lines[1]);
-		 }
+			String taskfile = file.getPath();
+			ArrayList<String> results = checkModel(param, taskfile);
+			String line = readTaskContent(taskfile);
+			String[] lines = line.split(" ");
+			if (lines[1].contains("intern")) {
+				// deadProcesses.put(Integer.parseInt(results.get(2)),lines[1].substring(7));
+				addStringToArrayList(deadProcesses,
+						Integer.parseInt(results.get(2)), lines[1].substring(7));
+				System.out.println("Dead Process if" + lines[1].substring(7)
+						+ " " + lines[5]);
+			} else {
+				addStringToArrayList(deadProcesses,
+						Integer.parseInt(results.get(2)), lines[1]);
+				// deadProcesses.put(Integer.parseInt(results.get(2)),lines[1]);
+			}
 		}
-		return  deadProcesses;
+		return deadProcesses;
 	}
-	
-	
-	public HashMap<Integer, ArrayList<String>> addStringToArrayList(HashMap<Integer, ArrayList<String>> hashMap, int returncode, String place)
-	{
-	    if(!hashMap.containsKey(returncode)) // no key found?
-	    {
-	    ArrayList<String> lx = new ArrayList<String>();
-	    lx.add(place);
-	    hashMap.put(returncode, lx);
-	    }
-	    else // the key pre-exists so we just add the (new) value to the existing arraylist
-	    {
-	    ArrayList<String> lx = hashMap.get(returncode)    ;
-	    lx.add(place);
-	    hashMap.put(returncode, lx);
-	    }
-	    return hashMap;
+
+	public HashMap<Integer, ArrayList<String>> addStringToArrayList(
+			HashMap<Integer, ArrayList<String>> hashMap, int returncode,
+			String place) {
+		if (!hashMap.containsKey(returncode)) // no key found?
+		{
+			ArrayList<String> lx = new ArrayList<String>();
+			lx.add(place);
+			hashMap.put(returncode, lx);
+		} else // the key pre-exists so we just add the (new) value to the
+				// existing arraylist
+		{
+			ArrayList<String> lx = hashMap.get(returncode);
+			lx.add(place);
+			hashMap.put(returncode, lx);
+		}
+		return hashMap;
 	}
-	
-	
-	public String readTaskContent(String filepath) throws IOException{
-		
-			  // Open the file that is the first 
-			  // command line parameter
-			  FileInputStream fstream = new FileInputStream(filepath);
-			  // Get the object of DataInputStream
-			  DataInputStream in = new DataInputStream(fstream);
-			  BufferedReader br = new BufferedReader(new InputStreamReader(in));
-			  String strLine;
-			  String result =  "";
-			  //Read File Line By Line
-			  while ((strLine = br.readLine()) != null)   {
-			  // Print the content on the console
-			  result = strLine;
-			  }
-			  //Close the input stream
-			  in.close();
-			  System.out.println (result);
-			  return result;
-	  }
-		
-	
-	
+
+	public String readTaskContent(String filepath) throws IOException {
+
+		// Open the file that is the first
+		// command line parameter
+		FileInputStream fstream = new FileInputStream(filepath);
+		// Get the object of DataInputStream
+		DataInputStream in = new DataInputStream(fstream);
+		BufferedReader br = new BufferedReader(new InputStreamReader(in));
+		String strLine;
+		String result = "";
+		// Read File Line By Line
+		while ((strLine = br.readLine()) != null) {
+			// Print the content on the console
+			result = strLine;
+		}
+		// Close the input stream
+		in.close();
+		System.out.println(result);
+		return result;
+	}
+
 	/**
 	 * @param pathtofile
 	 * @return
 	 * @throws Exception
-	 * Takes the name of the file
+	 *             Takes the name of the file
 	 */
-	public ArrayList<String> checkDeadlock(String pathtofile)throws Exception{
-		
+	public ArrayList<String> checkDeadlock(String pathtofile) throws Exception {
+
 		lola = CheckerType.LOLADEADLOCK;
 		System.out.println(lola.toString());
 		params.clear();
-		params.add(lolaPath+lola.toString());
+		params.add(lolaPath + lola.toString());
 		params.add(pathtofile);
 		params.add("-m");
-		//params.add("deadlock-graph");
+		// params.add("deadlock-graph");
 		params.add("-P");
-		//params.add("deadlock-path");
+		// params.add("deadlock-path");
 		Process process = createProcess(params);
 		return getOutput(process);
-		
+
 	}
-	
+
 	/**
 	 * @param pathtofile
 	 * @param pathtotask
 	 * @return
 	 * @throws Exception
 	 */
-	public ArrayList<String> checkModel(String pathtofile, String pathtotask) throws Exception{
+	public ArrayList<String> checkModel(String pathtofile, String pathtotask)
+			throws Exception {
 		lola = CheckerType.LOLAMODELCHECKING;
-		//lola = CheckerType.LOLALIVEPROP;
+		// lola = CheckerType.LOLALIVEPROP;
 		System.out.println(lola.toString());
 		params.clear();
-		params.add(lolaPath+lola.toString());
+		params.add(lolaPath + lola.toString());
 		params.add(pathtofile);
 		params.add("-P");
 		params.add("-a");
@@ -258,179 +270,202 @@ public class CorrectnessChecker {
 		Process process = createProcess(params);
 		return getOutput(process);
 	}
-	
-	
-	private List<String> checkModel(CheckerType whichLola, List<String> additionalParams, Formula formula) {
+
+	private List<String> checkModel(CheckerType whichLola,
+			List<String> additionalParams, Formula formula) throws IOException {
 		System.out.println("Checking formula: " + formula.getContent());
+		ArrayList<String> errorType = new ArrayList<String>();
 		StringBuilder cmd = new StringBuilder();
-		//params.clear();
+		// params.clear();
 		cmd.append(lolaPath);
 		cmd.append(whichLola.toString());
 		cmd.append(" ");
+
 		cmd.append(toCheck.getAbsolutePath());
 		cmd.append(" -a ");
 		cmd.append(formula.getFilepath().getAbsolutePath());
-		//cmd.append(additionalParams);
+		// cmd.append(additionalParams);
 		System.out.println(cmd);
 		List<String> result = new ArrayList<String>();
 		try {
 			Process process = rt.exec(cmd.toString());
-			BufferedReader br = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+			BufferedReader br = new BufferedReader(new InputStreamReader(
+					process.getErrorStream()));
 			String line;
 			result.add("Result: " + process.waitFor());
-			while ((line=br.readLine()) != null) {
+			while ((line = br.readLine()) != null) {
 				result.add(line);
 			}
-			
-			
+
 		} catch (InterruptedException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		//Process proc = createProcess(params); 		
-		//System.out.println(result);
+		// Process proc = createProcess(params);
+		System.out.println(result);
 		System.out.println(result.get(0).substring(8));
-		/*System.out.println(result.get(0).substring(9));*/
-		
-		if(result.get(0).substring(8).equals("0")){
-			System.out.println("In result set 0");
-			switch (formula.getType()){
-			case NoLiveLocks:
-				errors.put(formula.getid(),LIVELOCK_PROCESS);
-				break;
-			default:
-				break;
-				
+		String checkResult = result.get(0).substring(8);
+		CorrectnessCriteria type = formula.getType();
+		if (!isError(checkResult, type)) {
+			// no error, do nothing
+		} else {
+			if (errors.get(formula.getid()) == null
+					|| errors.get(formula.getid()).isEmpty()) {
+				errorType = new ArrayList<String>();
+			} else {
+				errorType = errors.get(formula.getid());
 			}
-		}
-		
-		
-		if(result.get(0).substring(8).equals("1")){
-			//System.out.println("In result set 1");
-			switch (formula.getType()){
+			switch (formula.getType()) {
+			case NoLiveLocks:
+				errorType.add(LIVELOCK_PROCESS);
+				break;
 			case NoDeadProcesses:
-				errors.put(formula.getid(),DEAD_PROCESS);
-				break;	
+				errorType.add(DEAD_PROCESS);
+				break;
 			case TerminatingProcess:
-				
-				errors.put(formula.getid(),NOT_TERMINATING_PROCESS);
-				System.out.println("In terminating process"+errors);
-			case LazyTermination :
-				errors.put(formula.getid(),LAZY_TERMINATING_RUN);
+				errorType.add(NOT_TERMINATING_PROCESS);
 				break;
 			case Termination:
-				errors.put(formula.getid(),TERMINATING_RUN);
+				errorType.add(TERMINATING_RUN);
+				break;
+			case LazyTermination:
+				errorType.add(LAZY_TERMINATING_RUN);
 				break;
 			default:
 				break;
+			}
+			errors.put(formula.getid(), errorType);
 		}
-		}
-		
-		
-		//prepare Error Set for Dispay in Browser
-		
-		
 		return result;
 	}
 
+	private boolean isError(String checkResult, CorrectnessCriteria type) {
+		// TODO Auto-generated method stub
+		switch (type) {
+		case NoLiveLocks:
+			return (checkResult.equals("0") ? true : false);
+		case NoDeadProcesses:
+			return (checkResult.equals("1") ? true : false);
+		case TerminatingProcess:
+			return (checkResult.equals("1") ? true : false);
+		case Termination:
+			return (checkResult.equals("1") ? true : false);
+		case LazyTermination:
+			return (checkResult.equals("1") ? true : false);
+		default:
+			return false;
+		}
+	}
 
-
-	public HashMap <String, HashMap<Integer, ArrayList<String>>> analyseAllProperties(String param) throws Exception{
-		HashMap <String, HashMap<Integer, ArrayList<String>>> completeResults = new HashMap<String, HashMap<Integer,ArrayList<String>>>();
+	public HashMap<String, HashMap<Integer, ArrayList<String>>> analyseAllProperties(
+			String param) throws Exception {
+		HashMap<String, HashMap<Integer, ArrayList<String>>> completeResults = new HashMap<String, HashMap<Integer, ArrayList<String>>>();
 		HashMap<Integer, ArrayList<String>> deadProResult = new HashMap<Integer, ArrayList<String>>();
 		HashMap<Integer, ArrayList<String>> liveTransResults = new HashMap<Integer, ArrayList<String>>();
 		HashMap<Integer, ArrayList<String>> directResults = new HashMap<Integer, ArrayList<String>>();
 		ArrayList<String> terminRunResults = new ArrayList<String>();
 		ArrayList<String> results = new ArrayList<String>();
 		String taskfile = "";
-		
+
 		File[] files = workDir.listFiles();
 		for (File file : files) {
-			if(file.isDirectory()&& file.getName().contains("deadProcess")){
-			deadProResult =	checkForDeadProcesses(param, file);
-				
+			if (file.isDirectory() && file.getName().contains("deadProcess")) {
+				deadProResult = checkForDeadProcesses(param, file);
+
 			}
-			if(file.isDirectory()&& file.getName().contains("liveTransition")){
-			liveTransResults = checkForLivenessTransitions(param, file);
-				
+			if (file.isDirectory() && file.getName().contains("liveTransition")) {
+				liveTransResults = checkForLivenessTransitions(param, file);
+
 			}
-			if(file.getName().contains("terminatingRun")){
-				taskfile =  file.getPath();
-				terminRunResults = checkModel(param, taskfile);				
-				//terminRunResults.add(results.get(2));
+			if (file.getName().contains("terminatingRun")) {
+				taskfile = file.getPath();
+				terminRunResults = checkModel(param, taskfile);
+				// terminRunResults.add(results.get(2));
 			}
-			
+
 		}
-		
-		
-		
+
 		results = checkDeadlock(param);
 		// Print out Result for Deadlock
-		if(results.get(2).equals("0")){
-			System.out.println(param+" has a deadlock");
-			
-		}
-		else if(results.get(2).equals("1")){
-			System.out.println(param+" has no deadlock");
+		if (results.get(2).equals("0")) {
+			System.out.println(param + " has a deadlock");
+
+		} else if (results.get(2).equals("1")) {
+			System.out.println(param + " has no deadlock");
 			System.out.println();
-		}else{
-			System.out.println("Some error occurred: Return code: "+results.get(2)+" Standard Output: "+results.get(0)+" Error Output: "+results.get(1));
+		} else {
+			System.out.println("Some error occurred: Return code: "
+					+ results.get(2) + " Standard Output: " + results.get(0)
+					+ " Error Output: " + results.get(1));
 		}
-		
-		
+
 		// Print out Results for LiveTransitions
-		if (liveTransResults.get(0)!= null) {
-			System.out.println(liveTransResults.get(0).size()+" Transitions are live. Their input places are :"+liveTransResults.get(0));	
+		if (liveTransResults.get(0) != null) {
+			System.out.println(liveTransResults.get(0).size()
+					+ " Transitions are live. Their input places are :"
+					+ liveTransResults.get(0));
 		}
-		if (liveTransResults.get(1)!= null) {
-			System.out.println(liveTransResults.get(1).size()+" Transitions are not live. Their input places are :"+liveTransResults.get(1));	
+		if (liveTransResults.get(1) != null) {
+			System.out.println(liveTransResults.get(1).size()
+					+ " Transitions are not live. Their input places are :"
+					+ liveTransResults.get(1));
 		}
-		
-		//Print Out Results for DeadProcesses
-		if (deadProResult.get(0)!= null) {
-			System.out.println(deadProResult.get(0).size()+" Processes are dead. Their input places are: "+deadProResult.get(0));	
+
+		// Print Out Results for DeadProcesses
+		if (deadProResult.get(0) != null) {
+			System.out.println(deadProResult.get(0).size()
+					+ " Processes are dead. Their input places are: "
+					+ deadProResult.get(0));
 		}
-		if (deadProResult.get(1)!= null) {
-			System.out.println(deadProResult.get(1).size()+" Processes are not dead. Their input places are: "+deadProResult.get(1));	
+		if (deadProResult.get(1) != null) {
+			System.out.println(deadProResult.get(1).size()
+					+ " Processes are not dead. Their input places are: "
+					+ deadProResult.get(1));
 		}
-		
-		//Print Out Results for Terminating Run
+
+		// Print Out Results for Terminating Run
 		if (terminRunResults.get(2).equals("0")) {
-			System.out.println(param+" has a terminting run");
-		}else if (terminRunResults.get(2).equals("1")) {
-			System.out.println(param+" has no terminating run");
-			System.out.println("Standard Output: "+terminRunResults.get(0)+" Error Output: "+terminRunResults.get(1));
-		}else{
-			System.out.println("The terminating run check caused an error. Return code: "+terminRunResults.get(2)+" Standard Output: "+terminRunResults.get(0)+" Error Output: "+terminRunResults.get(1));
+			System.out.println(param + " has a terminting run");
+		} else if (terminRunResults.get(2).equals("1")) {
+			System.out.println(param + " has no terminating run");
+			System.out.println("Standard Output: " + terminRunResults.get(0)
+					+ " Error Output: " + terminRunResults.get(1));
+		} else {
+			System.out
+					.println("The terminating run check caused an error. Return code: "
+							+ terminRunResults.get(2)
+							+ " Standard Output: "
+							+ terminRunResults.get(0)
+							+ " Error Output: "
+							+ terminRunResults.get(1));
 		}
-		
-		//Collect all results and return for further processing
+
+		// Collect all results and return for further processing
 		directResults.put(0, results);
 		directResults.put(1, terminRunResults);
-		
+
 		completeResults.put("live", liveTransResults);
 		completeResults.put("dead", deadProResult);
-		completeResults.put("deadlock0-terminating1",directResults);
+		completeResults.put("deadlock0-terminating1", directResults);
 		return completeResults;
-		//return completeAnalysis;
+		// return completeAnalysis;
 	}
-	
+
 	/**
 	 * @param pathtofile
 	 * @param params
 	 * @return
 	 * @throws Exception
 	 */
-	public ArrayList<String> runLolaFull(String pathtofile,ArrayList<String> params) throws Exception{
+	public ArrayList<String> runLolaFull(String pathtofile,
+			ArrayList<String> params) throws Exception {
 		lola = CheckerType.LOLA;
-		params.add(0, lolaPath+lola.toString());
-		params.add(1,pathtofile);
+		params.add(0, lolaPath + lola.toString());
+		params.add(1, pathtofile);
 		Process process = createProcess(params);
 		return getOutput(process);
 	}
-	
-	
-	
+
 	private Process createProcess(ArrayList<String> params) {
 		ProcessBuilder builder = new ProcessBuilder(params);
 		Process process = null;
@@ -441,9 +476,10 @@ public class CorrectnessChecker {
 		}
 		return process;
 	}
-	
+
 	/**
 	 * Get the output produced by LoLA as a list of Strings.
+	 * 
 	 * @param process
 	 * @return
 	 */
@@ -451,7 +487,7 @@ public class CorrectnessChecker {
 		ArrayList<String> results = new ArrayList<String>();
 		try {
 			String output = loadStream(process.getInputStream());
-			String error  = loadStream(process.getErrorStream());
+			String error = loadStream(process.getErrorStream());
 			int rc = process.waitFor();
 			results.add(output);
 			results.add(error);
@@ -460,41 +496,44 @@ public class CorrectnessChecker {
 			System.out.println("Failed to get results for process " + process);
 			e.printStackTrace();
 		}
-        return results;
+		return results;
 	}
-	
+
 	/**
 	 * Read a stream into a String.
+	 * 
 	 * @param s
 	 * @return
 	 * @throws Exception
 	 */
-	private static String loadStream(InputStream s) throws Exception
-    {
-        BufferedReader br = new BufferedReader(new InputStreamReader(s));
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while((line=br.readLine()) != null)
-            sb.append(line).append("\n");
-        return sb.toString();
-    }
-	
+	private static String loadStream(InputStream s) throws Exception {
+		BufferedReader br = new BufferedReader(new InputStreamReader(s));
+		StringBuilder sb = new StringBuilder();
+		String line;
+		while ((line = br.readLine()) != null)
+			sb.append(line).append("\n");
+		return sb.toString();
+	}
+
 	/**
-	 * Checks a given {@link Formula}. If the formula has not been
-	 * written to file yet, this is done by {@link CorrectnessChecker.writeTaskFile()}.
+	 * Checks a given {@link Formula}. If the formula has not been written to
+	 * file yet, this is done by {@link CorrectnessChecker.writeTaskFile()}.
+	 * 
 	 * @param formula
 	 * @return the output from LoLA, as a list of Strings
+	 * @throws IOException
 	 */
-	public List<String> checkFormula(Formula formula) {
-		if (! formula.hasFile()) { // write to file
+	public List<String> checkFormula(Formula formula) throws Exception {
+		if (!formula.hasFile()) { // write to file
 			File taskFile = writeTaskFile(formula);
-			if (taskFile != null) 
+			if (taskFile != null)
 				formula.setFilepath(taskFile);
 		}
 		CheckerType whichLola;
 		List<String> additionalParams = new ArrayList<String>();
 		switch (formula.getType()) {
-		case LazyTermination : case Termination:
+		case LazyTermination:
+		case Termination:
 			whichLola = CheckerType.LOLAMODELCHECKING;
 			additionalParams.add("-P");
 			break;
@@ -507,19 +546,20 @@ public class CorrectnessChecker {
 		case TerminatingProcess:
 			whichLola = CheckerType.LOLASTATEPREDICTE;
 			break;
-		
-		default: 
+
+		default:
 			whichLola = CheckerType.LOLA;
 		}
 		return checkModel(whichLola, additionalParams, formula);
 	}
 
-
-	/** 
-	 *  Writes the task file for the given formula. Does not set the 
-	 *  filepath field of the formula.
-	 *  @param a formula
-	 *  @return the written task file
+	/**
+	 * Writes the task file for the given formula. Does not set the filepath
+	 * field of the formula.
+	 * 
+	 * @param a
+	 *            formula
+	 * @return the written task file
 	 */
 	private File writeTaskFile(Formula formula) {
 		StringBuilder taskFileName = new StringBuilder();
@@ -538,7 +578,7 @@ public class CorrectnessChecker {
 			terminatingProcessCounter++;
 			taskFileName.append(PROCESSSTERMINATION_FILENAME);
 			taskFileName.append(terminatingProcessCounter);
-			break;	
+			break;
 		case NoLiveLocks:
 			liveLockCounter++;
 			taskFileName.append(LIVELOCK_FILENAME);
@@ -563,54 +603,62 @@ public class CorrectnessChecker {
 		}
 		return taskFile;
 	}
-//		File liveTransitionDir = new File(workDir +File.separator + "liveTransitions");
-//		boolean exists = liveTransitionDir.exists();
-//		if (!exists) {
-//			liveTransitionDir.mkdir();
-//		} else { // It returns true if File or directory exists
-//			System.out.println("the file or directory you are searching does exist : "
-//							+ exists);
-//		}
-//		File deadProcessDir = new File(workDir + File.separator+"deadProcess");
-//		exists = deadProcessDir.exists();
-//		if (!exists) {
-//			deadProcessDir.mkdir();
-//		} else { // It returns true if File or directory exists
-//			System.out.println("the file or directory you are searching does exist : "
-//							+ exists);
-//		}
-//		int i = 1;
-//		File taskFile;
-//		 for (String formula : formulae) {
-//			if(type.equals("liveTransitions")) {
-//				taskFile = new File(liveTransitionDir.getPath(), type + i + ".task");
-//			} else if(type.equals("deadProcess")){
-//				taskFile = new File(deadProcessDir.getPath(), type + i + ".task");
-//			} else {
-//				taskFile = new File(workDir, type + i + ".task");
-//			}
-//			try {
-//				BufferedWriter bw = new BufferedWriter(new FileWriter(taskFile));
-//				bw.write(formula);
-//				bw.close();
-//				i++;
-//				System.out.println("Task file " + taskFile
-//						+ " successfully written.");
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		}
 
-	public Map<String, String> getErrors(){
+	// File liveTransitionDir = new File(workDir +File.separator +
+	// "liveTransitions");
+	// boolean exists = liveTransitionDir.exists();
+	// if (!exists) {
+	// liveTransitionDir.mkdir();
+	// } else { // It returns true if File or directory exists
+	// System.out.println("the file or directory you are searching does exist : "
+	// + exists);
+	// }
+	// File deadProcessDir = new File(workDir + File.separator+"deadProcess");
+	// exists = deadProcessDir.exists();
+	// if (!exists) {
+	// deadProcessDir.mkdir();
+	// } else { // It returns true if File or directory exists
+	// System.out.println("the file or directory you are searching does exist : "
+	// + exists);
+	// }
+	// int i = 1;
+	// File taskFile;
+	// for (String formula : formulae) {
+	// if(type.equals("liveTransitions")) {
+	// taskFile = new File(liveTransitionDir.getPath(), type + i + ".task");
+	// } else if(type.equals("deadProcess")){
+	// taskFile = new File(deadProcessDir.getPath(), type + i + ".task");
+	// } else {
+	// taskFile = new File(workDir, type + i + ".task");
+	// }
+	// try {
+	// BufferedWriter bw = new BufferedWriter(new FileWriter(taskFile));
+	// bw.write(formula);
+	// bw.close();
+	// i++;
+	// System.out.println("Task file " + taskFile
+	// + " successfully written.");
+	// } catch (IOException e) {
+	// e.printStackTrace();
+	// }
+	// }
+
+	public Map<String, ArrayList<String>> getErrors() {
 		return errors;
 	}
 
 	public void checkBPA() {
-		
+		System.out.println(formulae);
 		for (Formula formula : formulae) {
-			 checkFormula(formula);
-			 
+			System.out.println(formula);
+			try {
+				checkFormula(formula);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
 		}
-		
+
 	}
 }

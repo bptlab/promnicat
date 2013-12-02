@@ -7,7 +7,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 import java.util.Map;
-
+import java.util.ArrayList;
 
 
 
@@ -19,7 +19,7 @@ public interface ServerInterface extends Remote
   
   public String getMessage() throws RemoteException;
   
-  public Map<String,String> checkModel(String jsonString) throws RemoteException;
+  public Map<String,ArrayList<String>> checkModel(String jsonString) throws RemoteException;
 }
 
 

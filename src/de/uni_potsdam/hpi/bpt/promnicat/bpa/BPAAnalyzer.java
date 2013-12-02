@@ -21,8 +21,9 @@ import org.json.JSONObject;
 
 public class BPAAnalyzer {
 
-	private static final File workDir = new File(System.getenv("userprofile")
-			+ File.separator + ".bpa");
+	//private static final File workDir = new File(System.getenv("userprofile")
+		//	+ File.separator + ".bpa");
+	private static final File workDir = new File("C:/.bpa");
 	
 	private static final String renewPath;
 	//private static final String lolaPath;
@@ -107,9 +108,9 @@ public class BPAAnalyzer {
 
 	}
 	
-	public static Map<String, String> analyseBPA(JSONObject json){
+	public static Map<String, ArrayList<String>> analyseBPA(JSONObject json){
 		
-		Map<String, String> errors = new HashMap<String,String>();
+		Map<String, ArrayList<String>> errors = new HashMap<String,ArrayList<String>>();
 		BPA bpa = BPAImporter.fromJson(json);
 		
 		// transform it
@@ -133,7 +134,7 @@ public class BPAAnalyzer {
 		
 		
 		errors = checker.getErrors();
-		
+		System.out.println(errors);
 		return errors;
 		
 		

@@ -270,7 +270,7 @@ public class BPATransformer {
 					//terminatingProcess.append(pCheck.getLabel() + " > 0 ");
 					deadProcessFormulae.add(formula.toString());
 					allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.NoDeadProcesses, processId));
-					
+					System.out.println("In dead process");
 					formulaForLivelocks.append(p.getLabel() + " >= 1 ");
 					allFormulae.add(new Formula(formulaForLivelocks.toString(), CorrectnessCriteria.NoLiveLocks, processId ));
 					if (((StartEvent) ev).isInitialPlace()) {
@@ -292,7 +292,7 @@ public class BPATransformer {
 			}else { // for end event
 				if (ev instanceof EndEvent) {
 					formula.append("AND "+pCheck.getLabel()+" > 0");
-					
+					System.out.println("in terminating process formula");
 					terminatingProcessFormulae.add(formula.toString());
 					allFormulae.add(new Formula(formula.toString(), CorrectnessCriteria.TerminatingProcess, processId ));
 				}

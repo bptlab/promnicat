@@ -31,7 +31,7 @@ public class RemoteServer extends UnicastRemoteObject implements ServerInterface
 	 * 
 	 */
 	private static final long serialVersionUID = -4862150313671105244L;
-	private Map<String,String> result = new HashMap<String, String>();
+	private Map<String,ArrayList<String>> result = new HashMap<String, ArrayList<String>>();
 	RemoteServer() throws RemoteException
   {
     super();
@@ -78,7 +78,7 @@ public class RemoteServer extends UnicastRemoteObject implements ServerInterface
 		
 	}
 	
-	public Map<String,String> checkModel(String jsonString) {
+	public Map<String,ArrayList<String>> checkModel(String jsonString) {
 		
 		try {
 			JSONObject json = new JSONObject(jsonString);
