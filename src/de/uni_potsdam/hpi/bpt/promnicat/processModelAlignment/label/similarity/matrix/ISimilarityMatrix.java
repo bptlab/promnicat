@@ -2,7 +2,7 @@ package de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.label.similarity.
 
 import java.util.Set;
 
-import org.jbpt.alignment.IEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 
 public interface ISimilarityMatrix<Entity extends IEntity> {
 

@@ -1,6 +1,6 @@
 package de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.label.similarity.matrix;
 
-import org.jbpt.alignment.IEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 
 public class SimilarityPair<Entity extends IEntity> {
 

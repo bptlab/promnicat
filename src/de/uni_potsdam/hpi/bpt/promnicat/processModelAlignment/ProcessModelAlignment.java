@@ -1,6 +1,6 @@
 package de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment;
 
-import org.jbpt.alignment.IEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 import org.jbpt.pm.ProcessModel;
 
 import de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.label.similarity.matrix.ISimilarityMatrix;

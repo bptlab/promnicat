@@ -1,34 +1,21 @@
 package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
-
-import org.jbpt.graph.Edge;
 import org.jbpt.graph.abs.AbstractDirectedEdge;
-import org.jbpt.petri.*;
-import org.jbpt.petri.io.PNMLSerializer;
-import org.jbpt.throwable.SerializationException;
-import org.json.JSONArray;
-import org.omg.CosNaming.NamingContextPackage.NotEmpty;
+import org.jbpt.petri.AbstractNetSystem;
+import org.jbpt.petri.Flow;
+import org.jbpt.petri.Marking;
+import org.jbpt.petri.NetSystem;
+import org.jbpt.petri.Node;
+import org.jbpt.petri.PetriNet;
+import org.jbpt.petri.Place;
+import org.jbpt.petri.Transition;
 
 /**
  * Transforms a {@link BPA} (subset) into a Petri Net.
@@ -70,20 +57,20 @@ public class BPATransformer {
 		
 		System.out.println("Starting transformation of BPA " + bpa.getName());
 		List<BusinessProcess> processes = bpa.getAllProcesses();
-		Map<BusinessProcess, PetriNet> resultingNets = new HashMap<BusinessProcess, PetriNet>();
-		Map<Event, List<PetriNet>> intermediaryNets = new HashMap<Event, List<PetriNet>>();
+		Map<BusinessProcess, AbstractNetSystem<Flow,Node,Place,Transition,Marking>> resultingNets = new HashMap<BusinessProcess, AbstractNetSystem<Flow,Node,Place,Transition,Marking>>();
+		Map<Event, List<AbstractNetSystem<Flow,Node,Place,Transition,Marking>>> intermediaryNets = new HashMap<Event, List<AbstractNetSystem<Flow,Node,Place,Transition,Marking>>>();
 		NetSystem bpaNet = new NetSystem();
 		
 		for (BusinessProcess process : processes) {
 			System.out.println("|- Transforming process " + process.getName());
-			PetriNet transformedProcess = transform(process);
+			AbstractNetSystem<Flow, Node, Place, Transition, Marking> transformedProcess = transform(process);
 			resultingNets.put(process, transformedProcess);
 		}
 
 		// intermediary nets
 		List<Event> allEvents = bpa.getEvents();
 		for (Event event : allEvents) {
-			List<PetriNet> transformed = transform(event);
+			List<AbstractNetSystem<Flow,Node,Place,Transition,Marking>> transformed = transform(event);
 			if (!transformed.isEmpty()) {
 				System.out.println("|- Transforming event " + event.getLabel()
 						+ " into " + transformed.size() + " intermediary net");
@@ -92,9 +79,9 @@ public class BPATransformer {
 		}
 
 		// now compose them
-		Collection<PetriNet> allNets = new ArrayList<PetriNet>();
+		Collection<AbstractNetSystem<Flow,Node,Place,Transition,Marking>> allNets = new ArrayList<AbstractNetSystem<Flow,Node,Place,Transition,Marking>>();
 		allNets.addAll(resultingNets.values());
-		for (List<PetriNet> nets : intermediaryNets.values()) {
+		for (List<AbstractNetSystem<Flow,Node,Place,Transition,Marking>> nets : intermediaryNets.values()) {
 			allNets.addAll(nets);
 		}
 		bpaNet = compose(allNets);
@@ -191,7 +178,7 @@ public class BPATransformer {
 	 * @param process
 	 * @return a org.jbpt.petri.PetriNet
 	 */
-	private PetriNet transform(BusinessProcess process) {
+	private AbstractNetSystem<Flow,Node,Place,Transition,Marking> transform(BusinessProcess process) {
 		NetSystem processNet = new NetSystem();
 		Boolean first = true;
 		Place p, pIntern, pHelp, pPrime, pCheck = null;
@@ -323,17 +310,17 @@ public class BPATransformer {
 	 * @param allNets
 	 * @return a composed PetriNet
 	 */
-	private NetSystem compose(Collection<PetriNet> allNets) {
+	private NetSystem compose(Collection<AbstractNetSystem<Flow,Node,Place,Transition,Marking>> allNets) {
 		NetSystem composedNet = new ComposingPetriNet();
 		System.out.println("Starting composition of " + allNets.size()
 				+ " nets.");
-		for (PetriNet pn : allNets) {
+		for (AbstractNetSystem<Flow,Node,Place,Transition,Marking> pn : allNets) {
 			System.out.println(" - Merging petri net " + pn);
 			for (Place p : pn.getPlaces()) {
 				composedNet.addPlace(p);
 			}
 			for (AbstractDirectedEdge<Node> arc : pn.getEdges()) {
-				Flow newFlow = composedNet.addFreshFlow(arc.getSource(),
+				Flow newFlow = composedNet.addFlow(arc.getSource(),
 						arc.getTarget());
 				newFlow.setTag(arc.getTag());
 				newFlow.setName(arc.getName());
@@ -370,18 +357,17 @@ public class BPATransformer {
 			return added;
 		}
 
-		@Override
 		public Flow addFreshFlow(Node from, Node to) {
 			Flow added;
 			String fromLabel = from.getLabel();
 			String toLabel = to.getLabel();
 			if (from instanceof Place && existingPlaces.containsKey(fromLabel)) {
-				added = super.addFreshFlow(existingPlaces.get(fromLabel), to);
+				added = super.addFlow(existingPlaces.get(fromLabel), to);
 			} else if (to instanceof Place
 					&& existingPlaces.containsKey(toLabel)) {
-				added = super.addFreshFlow(from, existingPlaces.get(toLabel));
+				added = super.addFlow(from, existingPlaces.get(toLabel));
 			} else {
-				added = super.addFreshFlow(from, to);
+				added = super.addFlow(from, to);
 			}
 			return added;
 		}
@@ -408,8 +394,8 @@ public class BPATransformer {
 	 * @param event
 	 * @return a list of intermediary {@link PetriNet}s or an empty list
 	 */
-	private List<PetriNet> transform(Event event) {
-		List<PetriNet> intermediaryNet = new ArrayList<PetriNet>();
+	private List<AbstractNetSystem<Flow, Node, Place, Transition, Marking>> transform(Event event) {
+		List<AbstractNetSystem<Flow, Node, Place, Transition, Marking>> intermediaryNet = new ArrayList<AbstractNetSystem<Flow,Node,Place,Transition,Marking>>();
 
 		// complicated distinction of cases
 		// for SendingEvents
@@ -454,8 +440,8 @@ public class BPATransformer {
 	 *            {@link ReceivingEvent} which requires a collector net
 	 * @return the collector {@link PetriNet}
 	 */
-	private PetriNet createCollectorNet(ReceivingEvent event) {
-		PetriNet collector = new PetriNet();
+	private AbstractNetSystem<Flow,Node,Place,Transition,Marking> createCollectorNet(ReceivingEvent event) {
+		AbstractNetSystem<Flow,Node,Place,Transition,Marking> collector = new NetSystem();
 		List<SendingEvent> pre = event.getPreset();
 		String eventLabel = event.getLabel();
 		String placeName = null;
@@ -502,8 +488,8 @@ public class BPATransformer {
 	 * @param {@link ReceivingEvent}, that requires multireceiver net
 	 * @return the multireceiver {@link PetriNet}
 	 */
-	private PetriNet createMultireceiverNet(ReceivingEvent event) {
-		PetriNet multireceiver = new PetriNet();
+	private AbstractNetSystem<Flow,Node,Place,Transition,Marking> createMultireceiverNet(ReceivingEvent event) {
+		AbstractNetSystem<Flow,Node,Place,Transition,Marking> multireceiver = new NetSystem();
 		List<SendingEvent> pre = event.getPreset();
 		String eventLabel = event.getLabel();
 
@@ -555,8 +541,8 @@ public class BPATransformer {
 	 * @param {@link SendingEvent} which requires splitter net
 	 * @return the splitter {@link PetriNet}
 	 */
-	private PetriNet createSplitterNet(SendingEvent event) {
-		PetriNet splitter = new PetriNet();
+	private AbstractNetSystem<Flow,Node,Place,Transition,Marking> createSplitterNet(SendingEvent event) {
+		AbstractNetSystem<Flow,Node,Place,Transition,Marking> splitter = new NetSystem();
 		List<ReceivingEvent> post = event.getPostset();
 
 		Place inPlace = new Place();
@@ -599,8 +585,8 @@ public class BPATransformer {
 	 * @param event
 	 * @return a {@link PetriNet}
 	 */
-	private PetriNet createMulticastNet(SendingEvent event) {
-		PetriNet multicaster = new PetriNet();
+	private AbstractNetSystem<Flow,Node,Place,Transition,Marking> createMulticastNet(SendingEvent event) {
+		AbstractNetSystem<Flow,Node,Place,Transition,Marking> multicaster = new NetSystem();
 		List<ReceivingEvent> post = event.getPostset();
 
 		Place inPlace = new Place(NORMAL_PLACE + event.getLabel());

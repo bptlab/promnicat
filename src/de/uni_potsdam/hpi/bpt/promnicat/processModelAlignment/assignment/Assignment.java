@@ -3,7 +3,7 @@ package de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.assignment;
 
 
 
-import org.jbpt.alignment.IEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 
 import de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.label.similarity.LabelSimilarity;
 import de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.label.similarity.matrix.ISimilarityMatrix;

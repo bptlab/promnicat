@@ -1,11 +1,8 @@
 package de.uni_potsdam.hpi.bpt.promnicat.bpa;
 
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -13,9 +10,12 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.jbpt.petri.AbstractNetSystem;
 import org.jbpt.petri.Flow;
+import org.jbpt.petri.Marking;
 import org.jbpt.petri.NetSystem;
-import org.jbpt.petri.PetriNet;
+import org.jbpt.petri.Place;
+import org.jbpt.petri.Transition;
 import org.jbpt.petri.io.PNMLSerializer;
 import org.jbpt.throwable.SerializationException;
 import org.w3c.dom.Document;
@@ -34,7 +34,7 @@ public class InscriptionSerializer extends PNMLSerializer {
 	 * @param net
 	 * @return
 	 */
-	public static String serializeNet(PetriNet net) {
+	public static String serializeNet(NetSystem net) {
 		Map<String,Flow> needInscription = new HashMap<String,Flow>();
 		for (Flow flow : net.getEdges()) {
 			if (flow.getTag() instanceof Integer) {
@@ -45,7 +45,7 @@ public class InscriptionSerializer extends PNMLSerializer {
 		String docXML = null;
 		try {
 			// not passing LOLA switch, no final markings required 
-			doc = PNMLSerializer.serialize((NetSystem) net);
+			doc = PNMLSerializer.serialize(net);
 		} catch (SerializationException e) {
 			e.printStackTrace();
 		}

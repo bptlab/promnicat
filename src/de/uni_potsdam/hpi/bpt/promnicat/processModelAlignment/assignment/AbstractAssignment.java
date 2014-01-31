@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
-import org.jbpt.alignment.IEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 
 import de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.label.similarity.matrix.ISimilarityMatrix;
 import de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.label.similarity.matrix.SimilarityMatrix;
