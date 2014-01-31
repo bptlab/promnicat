@@ -7,3 +7,4 @@
 /target
 /resources/SignavioAcademicExport20120810
 /build
+*.classpath
