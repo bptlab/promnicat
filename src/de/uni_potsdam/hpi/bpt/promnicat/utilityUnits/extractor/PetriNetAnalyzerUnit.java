@@ -23,8 +23,6 @@ import org.jbpt.petri.Flow;
 import org.jbpt.petri.NetSystem;
 import org.jbpt.petri.PetriNet;
 import org.jbpt.petri.behavior.LolaSoundnessChecker;
-import org.jbpt.petri.structure.PetriNetPathUtils;
-import org.jbpt.petri.structure.PetriNetStructuralClassChecks;
 
 import de.uni_potsdam.hpi.bpt.promnicat.util.IllegalTypeException;
 import de.uni_potsdam.hpi.bpt.promnicat.utilityUnits.IUnit;
@@ -75,19 +73,19 @@ public class PetriNetAnalyzerUnit implements IUnit<IUnitData<Object>, IUnitData<
 				NetSystem netSystem = new NetSystem();
 				netSystem.addNodes(petriNet.getNodes());
 				for(Flow edge : petriNet.getEdges()) {
-					netSystem.addFreshFlow(edge.getSource(), edge.getTarget());
+					netSystem.addFlow(edge.getSource(), edge.getTarget());
 				}
 				netSystem.loadNaturalMarking();
 				((IUnitDataClassification<?>) input).setSoundnessResults(LolaSoundnessChecker.analyzeSoundness(netSystem));
 			} catch (Exception e) {
 				logger.warning("Soundness check failed with message: " + e.getMessage());
 			}
-			((IUnitDataClassification<?>) input).setCyclic(PetriNetPathUtils.isCyclic(petriNet));
-			((IUnitDataClassification<?>) input).setFreeChoice(PetriNetStructuralClassChecks.isFreeChoice(petriNet));
-			((IUnitDataClassification<?>) input).setExtendedFreeChoice(PetriNetStructuralClassChecks.isExtendedFreeChoice(petriNet));
-			((IUnitDataClassification<?>) input).setSNet(PetriNetStructuralClassChecks.isSNet(petriNet));
-			((IUnitDataClassification<?>) input).setTnet(PetriNetStructuralClassChecks.isTNet(petriNet));
-			((IUnitDataClassification<?>) input).setWorkflowNet(PetriNetStructuralClassChecks.isWorkflowNet(petriNet));	
+			((IUnitDataClassification<?>) input).setCyclic(PetriNet.DIRECTED_GRAPH_ALGORITHMS.isCyclic(petriNet));
+			((IUnitDataClassification<?>) input).setFreeChoice(PetriNet.STRUCTURAL_CHECKS.isFreeChoice(petriNet));
+			((IUnitDataClassification<?>) input).setExtendedFreeChoice(PetriNet.STRUCTURAL_CHECKS.isExtendedFreeChoice(petriNet));
+			((IUnitDataClassification<?>) input).setSNet(PetriNet.STRUCTURAL_CHECKS.isSNet(petriNet));
+			((IUnitDataClassification<?>) input).setTnet(PetriNet.STRUCTURAL_CHECKS.isTNet(petriNet));
+			((IUnitDataClassification<?>) input).setWorkflowNet(PetriNet.STRUCTURAL_CHECKS.isWorkflowNet(petriNet));	
 			return input;		
 		}
 		logger.warning("Petri Net analysis has been skiped, due to wrong IUnit Data type!");

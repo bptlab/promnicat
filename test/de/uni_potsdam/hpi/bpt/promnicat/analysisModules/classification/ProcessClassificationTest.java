@@ -3,6 +3,7 @@ package de.uni_potsdam.hpi.bpt.promnicat.analysisModules.classification;
 import java.util.Collection;
 import java.util.Iterator;
 
+import org.jbpt.algo.tree.rpst.IRPSTNode;
 import org.jbpt.algo.tree.rpst.RPST;
 import org.jbpt.algo.tree.rpst.RPSTNode;
 import org.jbpt.algo.tree.tctree.TCType;
@@ -47,7 +48,7 @@ public class ProcessClassificationTest {
 			try {
 				RPST<ControlFlow<FlowNode>, FlowNode> rpst = new RPST<ControlFlow<FlowNode>, FlowNode>(model);
 				orLoop: for (IVertex sp : model.filter(OrGateway.class)) {
-					for (RPSTNode<ControlFlow<FlowNode>, FlowNode> rigidNode : rpst.getRPSTNodes(TCType.RIGID)) {
+					for (IRPSTNode<ControlFlow<FlowNode>, FlowNode> rigidNode : rpst.getRPSTNodes(TCType.RIGID)) {
 						if (rigidNode.getFragment().contains((OrGateway)sp)) {
 							notMappableOrGateway++;
 							break orLoop;

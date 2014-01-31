@@ -24,7 +24,6 @@
 	<classpathentry kind="lib" path="lib/orientdb-server-1.0rc6.jar"/>
 	<classpathentry kind="lib" path="lib/orientdb-tools-1.0rc6.jar"/>
 	<classpathentry kind="lib" path="lib/bpmai.jar"/>
-	<classpathentry kind="lib" path="lib/jbpt.jar"/>
 	<classpathentry kind="lib" path="lib/oryx-bpmn2.0.jar"/>
 	<classpathentry kind="lib" path="lib/jwnl.jar"/>
 	<classpathentry kind="lib" path="lib/uma.jar"/>
@@ -41,5 +40,12 @@
 	<classpathentry kind="lib" path="lib/jws/edu.mit.jwi_2.1.4.jar"/>
 	<classpathentry kind="lib" path="lib/jaws-bin.jar"/>
 	<classpathentry kind="lib" path="lib/stanford-corenlp-1.2.0.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jbpt-bp"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jbpt-bpm"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jbpt-core"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jbpt-deco"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jbpt-parent"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jbpt-petri"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jbpt-test"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

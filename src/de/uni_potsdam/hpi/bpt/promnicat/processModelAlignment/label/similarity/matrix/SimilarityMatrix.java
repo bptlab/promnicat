@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.jbpt.alignment.IEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 
 public class SimilarityMatrix<Entity extends IEntity> implements ISimilarityMatrix<Entity> {
 	private Set<Entity> firstSet = new HashSet<Entity>();

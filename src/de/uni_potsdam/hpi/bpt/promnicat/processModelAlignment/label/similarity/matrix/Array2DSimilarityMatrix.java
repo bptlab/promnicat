@@ -8,7 +8,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
-import org.jbpt.alignment.IEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 
 public class Array2DSimilarityMatrix<Entity extends IEntity> implements ISimilarityMatrix<Entity> {
 	private ArrayList<Entity> firstSet = new ArrayList<Entity>();

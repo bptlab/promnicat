@@ -1,7 +1,7 @@
 package de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.assignment;
 
 import org.apache.log4j.Logger;
-import org.jbpt.alignment.IEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 
 import de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.label.similarity.matrix.ISimilarityMatrix;
 import de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.label.similarity.matrix.SimilarityMatrix;

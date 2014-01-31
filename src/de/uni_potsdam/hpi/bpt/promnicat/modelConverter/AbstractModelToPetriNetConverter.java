@@ -21,10 +21,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jbpt.algo.tree.rpst.IRPSTNode;
 import org.jbpt.algo.tree.rpst.RPST;
 import org.jbpt.algo.tree.rpst.RPSTNode;
 import org.jbpt.algo.tree.tctree.TCType;
 import org.jbpt.graph.Fragment;
+import org.jbpt.graph.abs.IFragment;
 import org.jbpt.hypergraph.abs.GObject;
 import org.jbpt.petri.Flow;
 import org.jbpt.petri.Node;
@@ -164,8 +166,8 @@ public abstract class AbstractModelToPetriNetConverter implements IModelToPetriN
 			}
 		}
 		//search for an OR-gateway that can not be mapped
-		for (RPSTNode<ControlFlow<FlowNode>, FlowNode> rigidNode : rpsTree.getRPSTNodes(TCType.RIGID)) {
-			Fragment<ControlFlow<FlowNode>, FlowNode> fragment = rigidNode.getFragment();
+		for (IRPSTNode<ControlFlow<FlowNode>, FlowNode> rigidNode : rpsTree.getRPSTNodes(TCType.RIGID)) {
+			IFragment<ControlFlow<FlowNode>, FlowNode> fragment = rigidNode.getFragment();
 			for(OrGateway orGateway : orGateways) {
 				if (fragment.contains(orGateway)) {
 					throw new TransformationException(THE_GIVEN_PROCESS_MODEL_CONTAINS_AT_LEAST_ONE_OR_GATEWAY);
@@ -200,7 +202,7 @@ public abstract class AbstractModelToPetriNetConverter implements IModelToPetriN
 	 */
 	protected void transformOrGateways(ProcessModel model, Collection<OrGateway> orGateways,
 			RPST<ControlFlow<FlowNode>, FlowNode> rpsTree) {
-		for (RPSTNode<ControlFlow<FlowNode>, FlowNode> bondNode : rpsTree.getRPSTNodes(TCType.BOND)) {
+		for (IRPSTNode<ControlFlow<FlowNode>, FlowNode> bondNode : rpsTree.getRPSTNodes(TCType.BOND)) {
 			if(orGateways.contains(bondNode.getEntry())) {
 				OrGateway entry = (OrGateway) bondNode.getEntry();
 				//replace OR-gateway by AND-gateway and for each outgoing edge add an XOR-split 
@@ -337,13 +339,13 @@ public abstract class AbstractModelToPetriNetConverter implements IModelToPetriN
 				Transition t = new Transition();
 				t.setId("xorAndHelper" + this.getNextId());
 				this.petriNet.addTransition(t);
-				this.petriNet.addFreshFlow(source, t);
+				this.petriNet.addFlow(source, t);
 				this.connectTwoTransitions(t, (Transition) target, "xorAndHelper");
 				continue;
 			}
 			if ((source instanceof Place && target instanceof Transition)
 					|| (source instanceof Transition && target instanceof Place)) {
-				this.petriNet.addFreshFlow(source, target);
+				this.petriNet.addFlow(source, target);
 			}
 			else if ((source instanceof Place && target instanceof Place)) {
 				this.connectTwoPlaces((Place) source, (Place) target, "helperTransitionForEdge" + f.getId());

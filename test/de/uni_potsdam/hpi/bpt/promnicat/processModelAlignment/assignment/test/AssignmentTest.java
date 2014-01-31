@@ -2,8 +2,8 @@ package de.uni_potsdam.hpi.bpt.promnicat.processModelAlignment.assignment.test;
 
 import java.util.Set;
 
-import org.jbpt.alignment.IEntity;
 import org.jbpt.alignment.LabelEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 import org.junit.Assert;
 import org.junit.Test;
 

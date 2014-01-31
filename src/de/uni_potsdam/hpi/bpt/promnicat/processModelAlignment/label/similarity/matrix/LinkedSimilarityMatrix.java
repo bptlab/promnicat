@@ -5,7 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.jbpt.alignment.IEntity;
+import org.jbpt.hypergraph.abs.IEntity;
 
 public class LinkedSimilarityMatrix<Entity extends IEntity> implements ISimilarityMatrix<Entity> {
 	private LinkedHashSet<Entity> firstSet = new LinkedHashSet<Entity>();

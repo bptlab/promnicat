@@ -92,7 +92,7 @@ public class BpmnToPetriNetConverter extends AbstractModelToPetriNetConverter {
 			Node target = this.nodeMapping.get(messageFlow.getTarget());
 			if ((source instanceof Place && target instanceof Transition)
 					|| (source instanceof Transition && target instanceof Place)) {
-				this.petriNet.addFreshFlow(source, target);
+				this.petriNet.addFlow(source, target);
 			}
 			else if ((source instanceof Place && target instanceof Place)) {
 				this.connectTwoPlaces((Place) source, (Place) target, "transitionForMsgFlow" + messageFlow.getId());
@@ -212,7 +212,7 @@ public class BpmnToPetriNetConverter extends AbstractModelToPetriNetConverter {
 		PetriNet pn = new BpmnToPetriNetConverter().convertToPetriNet(subprocess.getSubProcess());
 		this.petriNet.addNodes(pn.getNodes());
 		for(Flow edge : pn.getEdges()) {
-			this.petriNet.addFreshFlow(edge.getSource(), edge.getTarget());
+			this.petriNet.addFlow(edge.getSource(), edge.getTarget());
 		}
 		if(subprocess.getAdhocOrder().equals(AdHocOrdering.Parallel)){
 			handleAdhocParallelExecution(end, start, pn, attachedEvents);
@@ -249,7 +249,7 @@ public class BpmnToPetriNetConverter extends AbstractModelToPetriNetConverter {
 				connectTwoPlaces(p, (Place) node, "");
 			}
 			for(Node n : pn.getSinkNodes()) {
-				if (PetriNet.DGA.hasPath(pn, node, n)) {
+				if (PetriNet.DIRECTED_GRAPH_ALGORITHMS.hasPath(pn, node, n)) {
 					if (node instanceof Transition) {
 						this.petriNet.addFlow((Transition) n, p);					
 					} else {
@@ -329,7 +329,7 @@ public class BpmnToPetriNetConverter extends AbstractModelToPetriNetConverter {
 			Node target = this.nodeMapping.get(edge.getTarget());
 			if ((source instanceof Place && target instanceof Transition)
 					|| (source instanceof Transition && target instanceof Place)) {
-				this.petriNet.addFreshFlow(source, target);
+				this.petriNet.addFlow(source, target);
 			}
 			else if ((source instanceof Place && target instanceof Place)) {
 				this.connectTwoPlaces((Place) source, (Place) target, "helperTransitionForEdge" + edge.getId());
@@ -344,7 +344,7 @@ public class BpmnToPetriNetConverter extends AbstractModelToPetriNetConverter {
 			Transition attachedEventTransition = new Transition(attachedEvent.getLabel());
 			Node source = this.nodeMapping.get(edge.getSource());
 			if (source instanceof Place) {
-				this.petriNet.addFreshFlow(source, attachedEventTransition);
+				this.petriNet.addFlow(source, attachedEventTransition);
 			} else {
 				this.connectTwoTransitions((Transition) source, attachedEventTransition, "helperPlaceForEdge" + edge.getId());
 				Place p = this.petriNet.getPreset(attachedEventTransition).iterator().next();
@@ -355,7 +355,7 @@ public class BpmnToPetriNetConverter extends AbstractModelToPetriNetConverter {
 			}
 			Node target = this.nodeMapping.get(edge.getTarget());
 			if (target instanceof Place) {
-				this.petriNet.addFreshFlow(attachedEventTransition, target);
+				this.petriNet.addFlow(attachedEventTransition, target);
 			} else {
 				this.connectTwoTransitions(attachedEventTransition ,(Transition) target , "helperPlaceForEdge" + edge.getId());
 			}
@@ -414,7 +414,7 @@ public class BpmnToPetriNetConverter extends AbstractModelToPetriNetConverter {
 		//add converted subprocess net to final Petri net
 		this.petriNet.addNodes(pn.getNodes());
 		for (Flow f : pn.getFlow()) {
-			this.petriNet.addFreshFlow(f.getSource(), f.getTarget());
+			this.petriNet.addFlow(f.getSource(), f.getTarget());
 		}
 	}
 
@@ -432,11 +432,11 @@ public class BpmnToPetriNetConverter extends AbstractModelToPetriNetConverter {
 		if (pn.getSourceNodes().size() > 1) {
 			Place p = new Place("subprocessesStartPlace" + getNextId());
 			for(Node n : pn.getSourceNodes()) {
-				pn.addFreshFlow(p, n);
+				pn.addFlow(p, n);
 			}
 			pn.addFlow(subprocessStart, p);
 		} else if (!pn.getSourceNodes().isEmpty()){
-			pn.addFreshFlow(subprocessStart, pn.getSourceNodes().iterator().next());
+			pn.addFlow(subprocessStart, pn.getSourceNodes().iterator().next());
 		}
 		this.nodeMapping.put(subprocess, subprocessStart);
 		//add dummy activity to original process model to handle end of subprocess
@@ -448,7 +448,7 @@ public class BpmnToPetriNetConverter extends AbstractModelToPetriNetConverter {
 				//insert place to connect all ends
 				Place p = new Place("subprocessesEndPlace" + getNextId());
 				for(Node n : pn.getSinkNodes()) {
-					pn.addFreshFlow(n, p);
+					pn.addFlow(n, p);
 				}
 				pn.addFlow(p, subprocessEnd);
 			} else if (!pn.getSinkNodes().isEmpty()) {
