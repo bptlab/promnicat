@@ -518,7 +518,7 @@ public class BpmnParser implements IParser {
 					flow = this.process.addControlFlow((FlowNode)fromNode.getKey(), (FlowNode) toNode.getKey(), expression, defaultFlow);
 				}
 			}
-		} else {
+		} else {	
 			if (toNode.getValue() != null && toNode.getValue() == fromNode.getValue()){
 				flow = toNode.getValue().addControlFlow((FlowNode)fromNode.getKey(), (FlowNode) toNode.getKey(), defaultFlow);
 			} else {
@@ -527,7 +527,13 @@ public class BpmnParser implements IParser {
 				}
 			}
 		}
-		if (flow != null) flow.setId(s.getResourceId());
+		
+		if (flow != null) {
+			flow.setId(s.getResourceId());
+			if (s.getProperty(constants.getPropertyName()) != null) {
+				flow.setName(s.getProperty(constants.getPropertyName()));
+			}
+		}
 		this.controlflowIds.put(s.getResourceId(), flow);
 	}
 	

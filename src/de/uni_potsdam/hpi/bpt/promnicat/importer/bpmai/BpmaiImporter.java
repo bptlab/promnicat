@@ -34,6 +34,7 @@ import org.json.JSONException;
 
 import de.uni_potsdam.hpi.bpt.ai.collection.BPMAIExport;
 import de.uni_potsdam.hpi.bpt.ai.collection.BPMAIExportBuilder;
+import de.uni_potsdam.hpi.bpt.ai.collection.impl.RevisionImpl;
 import de.uni_potsdam.hpi.bpt.ai.diagram.Diagram;
 import de.uni_potsdam.hpi.bpt.promnicat.importer.AbstractImporter;
 import de.uni_potsdam.hpi.bpt.promnicat.persistenceApi.IPersistenceApi;
@@ -61,6 +62,10 @@ public class BpmaiImporter extends AbstractImporter {
 	private IPersistenceApi persistenceApi = null;
 
 	private final static Logger logger = Logger.getLogger(BpmaiImporter.class.getName());
+	
+	public BpmaiImporter() {
+		
+	}
 
 	/**
 	 * Creates a new {@link BpmaiImporter} with the given {@link IPersistenceApi} used for database access.
@@ -253,7 +258,7 @@ public class BpmaiImporter extends AbstractImporter {
 		}
 		this.persistenceApi.closeDb();
 		//delete dummy folder containing extracted sgx archives
-		deleteDirectory(container);
+//		deleteDirectory(container);
 	
 		logger.info("Finished import or update of " + modelCounter + " models," +
 				" and created " + this.createdRevisionsCount + " revisions and " + this.createdRepresentationsCount + " representations.");
@@ -283,7 +288,7 @@ public class BpmaiImporter extends AbstractImporter {
 	 * @throws JSONException if JSON parsing is erroneous 
 	 * @throws IOException if the given source path could not be found or read
 	 */
-	private Model parseModel(de.uni_potsdam.hpi.bpt.ai.collection.Model bpmAiModel)	throws JSONException, IOException {
+	public Model parseModel(de.uni_potsdam.hpi.bpt.ai.collection.Model bpmAiModel)	throws JSONException, IOException {
 
 		Model model = new Model(bpmAiModel.getName(), Constants.ORIGIN_BPMAI, bpmAiModel.getId().toString());
 		Revision revision = null;
