@@ -168,13 +168,6 @@ public class BPMNToDMN {
 			}
 		}
 
-		// for (ProcessModel fragment : pattern3Fragments.keySet()) {
-		// if (fragment.getFlowNodes().size() < 15) {
-		// System.out.println(papi.loadRepresentation(
-		// fragment.getDescription()).getOriginalFilePath());
-		// }
-		// }
-
 		System.out.println(pattern1Fragments.size()
 				/ (double) filteredResult.size());
 		System.out.println(pattern2Fragments.size()

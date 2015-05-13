@@ -53,8 +53,8 @@ public class JSONAdaptor {
 
 			String newCondition = rule.getConclusion().getValue();
 
-			if (representation.getOriginalFilePath().contains(
-					"d664712675074d0d8801075fe8fa4a8d")) {
+//			if (representation.getOriginalFilePath().contains(
+//					"d664712675074d0d8801075fe8fa4a8d")) {
 
 				JSONObject sequenceFlowObject = findContainingJSONObject(
 						modelJSON,
@@ -69,7 +69,7 @@ public class JSONAdaptor {
 						modelJSON,
 						precedingElementsIDs.get(precedingElementsIDs.size() - 1),
 						newEdge, endNode.getId());
-			}
+//			}
 		}
 
 		for (FlowNode endNode : endNodes) {
@@ -80,8 +80,8 @@ public class JSONAdaptor {
 			}
 		}
 
-		if (representation.getOriginalFilePath().contains(
-				"d664712675074d0d8801075fe8fa4a8d")) {
+//		if (representation.getOriginalFilePath().contains(
+//				"d664712675074d0d8801075fe8fa4a8d")) {
 			Model model = representation.getModel().loadCompleteModel(papi);
 			int nrOfRevisions = model.getNrOfRevisions();
 			String newRepresentationString = modelJSON.toString();			
@@ -101,7 +101,7 @@ public class JSONAdaptor {
 					"<?xml version=\"1.0\" encoding=\"utf-8\"?><oryxmodel><description></description><type>BPMN</type><json-representation><![CDATA["
 							+ newRepresentationString
 							+ "]]></json-representation></oryxmodel>");
-		}
+//		}
 	}
 	
 	private FlowNode findStartNode(ProcessModel fragment) {
